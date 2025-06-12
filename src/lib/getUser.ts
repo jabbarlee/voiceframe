@@ -19,7 +19,7 @@ export const getUserFromRequest = async (): Promise<AuthUser | null> => {
 
     console.log("🔧 Verifying session cookie...");
     // Verify the session cookie
-    const decodedClaims = await verifySessionCookie(sessionCookie, true);
+    const decodedClaims = await verifySessionCookie(sessionCookie);
 
     console.log("✅ Session verified for user:", decodedClaims.uid);
     return {

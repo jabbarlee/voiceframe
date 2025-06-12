@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import { signIn } from "@/lib/firebase";
-import { createSession, redirectToDashboard } from "@/app/(auth)/actions";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -34,20 +33,7 @@ export default function LoginPage() {
       const { idToken } = await signIn(email, password);
       console.log("✅ Firebase sign in successful");
 
-      // Create session using server action
-      const result = await createSession(idToken);
-
-      if (!result.success) {
-        throw new Error(result.error || "Failed to create session");
-      }
-
-      console.log("✅ Session created successfully");
-
-      // Small delay to ensure cookie is set
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      // Redirect to dashboard
-      await redirectToDashboard();
+      
     } catch (error: any) {
       console.error("❌ Login error:", error);
       setError(error.message || "An error occurred during login");

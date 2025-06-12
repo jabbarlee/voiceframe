@@ -1,12 +1,11 @@
 import { getUserFromRequest } from "@/lib/getUser";
-import { redirectToLogin } from "@/app/(auth)/actions";
 import { Button } from "@/components/ui/button";
 
 export default async function DashboardPage() {
   const user = await getUserFromRequest();
 
   if (!user) {
-    await redirectToLogin();
+    
     return null;
   }
 
