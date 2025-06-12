@@ -1,10 +1,10 @@
 "use client";
 
 import { Navbar } from "@/components/pages/landing/navbar";
-import { Pricing } from "@/components/pages/landing/pricing";
 import { Hero } from "@/components/pages/landing/hero";
 import { Features } from "@/components/pages/landing/features";
 import { HowItWorks } from "@/components/pages/landing/how-it-works";
+import { Pricing } from "@/components/pages/landing/pricing";
 import { Footer } from "@/components/pages/landing/footer";
 
 export default function Home() {

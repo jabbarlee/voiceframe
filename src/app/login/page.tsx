@@ -4,13 +4,61 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
+import { signIn } from "@/lib/firebase";
+import { createSession, redirectToDashboard } from "@/app/(auth)/actions";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError("");
+
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+
+    if (!email || !password) {
+      setError("Please fill in all fields");
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      console.log("🔧 Starting login process for:", email);
+
+      // Sign in with Firebase
+      const { idToken } = await signIn(email, password);
+      console.log("✅ Firebase sign in successful");
+
+      // Create session using server action
+      const result = await createSession(idToken);
+
+      if (!result.success) {
+        throw new Error(result.error || "Failed to create session");
+      }
+
+      console.log("✅ Session created successfully");
+
+      // Small delay to ensure cookie is set
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Redirect to dashboard
+      await redirectToDashboard();
+    } catch (error: any) {
+      console.error("❌ Login error:", error);
+      setError(error.message || "An error occurred during login");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-emerald-50/30 to-emerald-100/20 flex flex-col">
-      {/* Background patterns */}
+      {/* Animated background patterns */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#10b98114_1px,transparent_1px),linear-gradient(to_bottom,#10b98114_1px,transparent_1px)] bg-[size:4rem_4rem]"></div>
         <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-emerald-200/10 rounded-full blur-3xl"></div>
@@ -52,7 +100,7 @@ export default function LoginPage() {
               </p>
             </div>
 
-            <form className="space-y-6">
+            <form onSubmit={handleLogin} className="space-y-6">
               {/* Email Field */}
               <div>
                 <label
@@ -134,9 +182,27 @@ export default function LoginPage() {
                 </Link>
               </div>
 
+              {/* Error Message */}
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                  {error}
+                </div>
+              )}
+
               {/* Sign In Button */}
-              <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 text-base font-semibold shadow-lg hover:shadow-xl transition-all duration-200">
-                Sign in
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white py-3 text-base font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+              >
+                {isLoading ? (
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Signing in...
+                  </div>
+                ) : (
+                  "Sign in"
+                )}
               </Button>
             </form>
 
