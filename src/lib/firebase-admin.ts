@@ -1,24 +1,15 @@
-import * as admin from 'firebase-admin';
-import path from 'path';
-
-// Load the service account key JSON file from disk
-const serviceAccount = require(path.resolve('./serviceAccountKey.json'));
+import * as admin from "firebase-admin";
 
 if (!admin.apps.length) {
   admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
+    credential: admin.credential.cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+    }),
   });
 }
 
 export const adminAuth = admin.auth();
 
-export const verifySessionCookie = async (sessionCookie: string) => {
-  try {
-    // Verify the session cookie
-    const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
-    return decodedClaims;
-  } catch (error) {
-    console.error('Error verifying session cookie:', error);
-    throw new Error('Invalid session cookie');
-  }
-}
+// Remove the session cookie functions - they'll be in API routes now

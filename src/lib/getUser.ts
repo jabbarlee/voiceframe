@@ -1,5 +1,4 @@
 import { cookies } from "next/headers";
-import { verifySessionCookie } from "./firebase-admin";
 
 export interface AuthUser {
   uid: string;
@@ -9,24 +8,23 @@ export interface AuthUser {
 
 export const getUserFromRequest = async (): Promise<AuthUser | null> => {
   try {
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get("session")?.value;
+    // Call the verify API endpoint
+    const response = await fetch(
+      `${
+        process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
+      }/api/auth/verify`,
+      {
+        method: "GET",
+        credentials: "include",
+      }
+    );
 
-    if (!sessionCookie) {
-      console.log("No session cookie found");
+    if (!response.ok) {
       return null;
     }
 
-    console.log("🔧 Verifying session cookie...");
-    // Verify the session cookie
-    const decodedClaims = await verifySessionCookie(sessionCookie);
-
-    console.log("✅ Session verified for user:", decodedClaims.uid);
-    return {
-      uid: decodedClaims.uid,
-      email: decodedClaims.email,
-      emailVerified: decodedClaims.email_verified || false,
-    };
+    const data = await response.json();
+    return data.user;
   } catch (error) {
     console.error("❌ Error getting user from request:", error);
     return null;

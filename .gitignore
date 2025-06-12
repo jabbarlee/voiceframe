@@ -40,4 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Firebase service account key
 voiceframe-service-account.json
+*-service-account.json

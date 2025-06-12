@@ -4,13 +4,7 @@ export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Define public routes that don't require authentication
-  const publicRoutes = [
-    "/",
-    "/login",
-    "/signup",
-    "/api/auth/session",
-    "/api/auth/logout",
-  ];
+  const publicRoutes = ["/", "/login", "/signup"];
 
   // Skip middleware for public routes, API routes, and static files
   if (
@@ -33,9 +27,8 @@ export async function middleware(req: NextRequest) {
   // For protected routes, verify session via API call
   try {
     const verifyResponse = await fetch(new URL("/api/auth/verify", req.url), {
-      method: "POST",
+      method: "GET",
       headers: {
-        "Content-Type": "application/json",
         Cookie: req.headers.get("cookie") || "",
       },
     });

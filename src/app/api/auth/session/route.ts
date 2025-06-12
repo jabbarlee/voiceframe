@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth } from "@/lib/firebase-admin";
-import { cookies } from "next/headers";
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,17 +12,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verify the ID token and create session cookie
-    const decodedToken = await adminAuth.verifyIdToken(idToken);
-    const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
+    console.log("🔧 Creating session cookie...");
 
+    // Verify the ID token first
+    const decodedToken = await adminAuth.verifyIdToken(idToken);
+
+    // Create session cookie that expires in 5 days
+    const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
     const sessionCookie = await adminAuth.createSessionCookie(idToken, {
       expiresIn,
     });
 
     // Set the session cookie
     const response = NextResponse.json(
-      { message: "Session created successfully" },
+      { message: "Session created successfully", uid: decodedToken.uid },
       { status: 200 }
     );
 
@@ -37,9 +39,10 @@ export async function POST(req: NextRequest) {
       path: "/",
     });
 
+    console.log("✅ Session cookie created and set");
     return response;
   } catch (error: any) {
-    console.error("Session creation error:", error);
+    console.error("❌ Session creation error:", error);
     return NextResponse.json(
       { error: "Failed to create session" },
       { status: 401 }

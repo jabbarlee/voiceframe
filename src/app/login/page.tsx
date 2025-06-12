@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import { signIn } from "@/lib/firebase";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -33,7 +35,26 @@ export default function LoginPage() {
       const { idToken } = await signIn(email, password);
       console.log("✅ Firebase sign in successful");
 
-      
+      // Create session using API route
+      const response = await fetch("/api/auth/session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ idToken }),
+        credentials: "include", // Important for cookies
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to create session");
+      }
+
+      console.log("✅ Session created successfully");
+
+      // Redirect to dashboard
+      router.push("/dashboard");
+      router.refresh(); // Force refresh to update server-side auth state
     } catch (error: any) {
       console.error("❌ Login error:", error);
       setError(error.message || "An error occurred during login");

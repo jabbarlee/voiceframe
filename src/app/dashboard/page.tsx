@@ -1,11 +1,67 @@
-import { getUserFromRequest } from "@/lib/getUser";
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
-export default async function DashboardPage() {
-  const user = await getUserFromRequest();
+interface User {
+  uid: string;
+  email: string;
+  emailVerified: boolean;
+}
+
+export default function DashboardPage() {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    try {
+      const response = await fetch("/api/auth/verify", {
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        router.push("/login");
+        return;
+      }
+
+      const data = await response.json();
+      setUser(data.user);
+    } catch (error) {
+      console.error("Auth check failed:", error);
+      router.push("/login");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+
+      router.push("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+      </div>
+    );
+  }
 
   if (!user) {
-    
     return null;
   }
 
@@ -30,15 +86,13 @@ export default async function DashboardPage() {
                 </p>
               </div>
             </div>
-            <form>
-              <Button
-                type="submit"
-                variant="outline"
-                className="hover:bg-red-50 hover:text-red-600 hover:border-red-200"
-              >
-                Sign Out
-              </Button>
-            </form>
+            <Button
+              onClick={handleLogout}
+              variant="outline"
+              className="hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+            >
+              Sign Out
+            </Button>
           </div>
 
           <div className="mt-8">
