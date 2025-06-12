@@ -1,4 +1,4 @@
-import { CheckIcon } from "lucide-react";
+import { CheckIcon, Star, Zap, Crown } from "lucide-react";
 import { Button } from "./ui/button";
 
 const plans = [
@@ -7,6 +7,7 @@ const plans = [
     price: 19,
     description:
       "Perfect for individuals getting started with content creation.",
+    icon: Zap,
     features: [
       "5 hours of transcription/month",
       "10 AI content generations",
@@ -16,11 +17,13 @@ const plans = [
     ],
     buttonText: "Get Started",
     popular: false,
+    gradient: "from-blue-500 to-cyan-500",
   },
   {
     name: "Pro",
     price: 49,
     description: "For professionals who create content regularly.",
+    icon: Star,
     features: [
       "20 hours of transcription/month",
       "Unlimited AI content generations",
@@ -31,11 +34,13 @@ const plans = [
     ],
     buttonText: "Start Free Trial",
     popular: true,
+    gradient: "from-emerald-500 to-teal-500",
   },
   {
     name: "Enterprise",
     price: "Custom",
     description: "For organizations with advanced needs.",
+    icon: Crown,
     features: [
       "Custom transcription limits",
       "Unlimited AI content generations",
@@ -46,6 +51,7 @@ const plans = [
     ],
     buttonText: "Contact Sales",
     popular: false,
+    gradient: "from-purple-500 to-pink-500",
   },
 ];
 
@@ -53,66 +59,107 @@ export function Pricing() {
   return (
     <section
       id="pricing"
-      className="w-full py-24 bg-white border-t border-gray-200"
+      className="w-full py-24 bg-gradient-to-b from-gray-50 via-white to-gray-50 relative overflow-hidden"
     >
-      <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="w-full max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Simple, transparent pricing
+      {/* Background decoration */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(16,185,129,0.05),transparent_50%)]"></div>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(16,185,129,0.05),transparent_50%)]"></div>
+
+      <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="w-full max-w-4xl mx-auto text-center mb-20">
+          <div className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 mb-6">
+            <Star className="mr-2 h-4 w-4" />
+            Pricing Plans
+          </div>
+          <h2 className="text-4xl font-bold tracking-tight sm:text-5xl mb-6">
+            Simple,{" "}
+            <span className="bg-gradient-to-r from-emerald-600 to-emerald-500 bg-clip-text text-transparent">
+              transparent pricing
+            </span>
           </h2>
-          <p className="mt-4 text-lg text-muted-foreground">
+          <p className="text-xl text-muted-foreground leading-relaxed">
             Choose the plan that works best for your content creation needs.
           </p>
         </div>
 
-        <div className="w-full max-w-5xl mx-auto mt-16 grid grid-cols-1 gap-8 md:grid-cols-3">
+        <div className="w-full max-w-6xl mx-auto grid grid-cols-1 gap-8 lg:grid-cols-3">
           {plans.map((plan) => (
             <div
               key={plan.name}
-              className={`relative rounded-2xl p-8 shadow-lg transition-all hover:shadow-xl ${
+              className={`relative rounded-3xl p-8 transition-all duration-300 ${
                 plan.popular
-                  ? "border-2 border-emerald-500 ring-2 ring-emerald-200 bg-white scale-105"
-                  : "border border-gray-200 bg-white hover:border-emerald-200"
+                  ? "bg-white shadow-2xl border-2 border-emerald-200 scale-105 hover:scale-110"
+                  : "bg-white shadow-lg border border-gray-200 hover:shadow-xl hover:scale-105"
               }`}
             >
+              {/* Popular badge */}
               {plan.popular && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 transform">
-                  <span className="rounded-full bg-emerald-600 px-4 py-1 text-sm font-medium text-white shadow-lg">
+                <div className="absolute -top-5 left-1/2 -translate-x-1/2">
+                  <div className="inline-flex items-center rounded-full bg-gradient-to-r from-emerald-600 to-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-lg">
+                    <Star className="mr-1 h-4 w-4" />
                     Most Popular
-                  </span>
+                  </div>
                 </div>
               )}
-              <h3 className="text-2xl font-bold">{plan.name}</h3>
-              <p className="mt-2 text-muted-foreground">{plan.description}</p>
-              <div className="mt-6">
-                <p className="text-4xl font-bold">
-                  {typeof plan.price === "number"
-                    ? `$${plan.price}`
-                    : plan.price}
-                  {typeof plan.price === "number" && (
-                    <span className="text-lg font-normal text-muted-foreground">
-                      /mo
+
+              {/* Plan icon */}
+              <div
+                className={`inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-r ${plan.gradient} text-white shadow-lg mb-6`}
+              >
+                <plan.icon className="h-7 w-7" />
+              </div>
+
+              <div className="mb-8">
+                <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
+                <p className="text-muted-foreground mb-6">{plan.description}</p>
+
+                <div className="mb-6">
+                  <div className="flex items-baseline">
+                    <span className="text-5xl font-bold">
+                      {typeof plan.price === "number"
+                        ? `$${plan.price}`
+                        : plan.price}
                     </span>
-                  )}
-                </p>
+                    {typeof plan.price === "number" && (
+                      <span className="text-xl text-muted-foreground ml-2">
+                        /month
+                      </span>
+                    )}
+                  </div>
+                </div>
+
                 <Button
-                  className="mt-6 w-full"
+                  className={`w-full mb-8 ${
+                    plan.popular
+                      ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg"
+                      : "bg-gray-900 hover:bg-gray-800 text-white"
+                  }`}
                   size="lg"
-                  variant={plan.popular ? "default" : "outline"}
                 >
                   {plan.buttonText}
                 </Button>
               </div>
-              <ul className="mt-8 space-y-4">
+
+              <div className="space-y-4">
+                <h4 className="font-semibold text-gray-900 mb-4">
+                  What's included:
+                </h4>
                 {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-start">
-                    <CheckIcon className="mr-2 h-5 w-5 flex-shrink-0 text-emerald-500" />
-                    <span className="text-sm text-muted-foreground">
+                  <div key={feature} className="flex items-start">
+                    <div className="flex-shrink-0 mr-3">
+                      <CheckIcon className="h-5 w-5 text-emerald-500" />
+                    </div>
+                    <span className="text-sm text-muted-foreground leading-relaxed">
                       {feature}
                     </span>
-                  </li>
+                  </div>
                 ))}
-              </ul>
+              </div>
+
+              {/* Bottom gradient accent */}
+              <div
+                className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${plan.gradient} rounded-b-3xl`}
+              ></div>
             </div>
           ))}
         </div>
