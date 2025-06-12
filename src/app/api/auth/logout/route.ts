@@ -1,28 +1,21 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 
 export async function POST() {
   try {
-    console.log("🔧 Logging out user...");
+    const cookieStore = await cookies();
 
     const response = NextResponse.json(
       { message: "Logged out successfully" },
       { status: 200 }
     );
 
-    // Clear the session cookie
-    response.cookies.set({
-      name: "session",
-      value: "",
-      maxAge: 0,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      path: "/",
-    });
+    // ✅ Delete the httpOnly session cookie
+    (await cookieStore).delete("session");
 
     console.log("✅ Session cookie cleared");
     return response;
-  } catch (error: any) {
+  } catch (error) {
     console.error("❌ Logout error:", error);
     return NextResponse.json({ error: "Failed to logout" }, { status: 500 });
   }

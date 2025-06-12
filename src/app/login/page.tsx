@@ -29,12 +29,8 @@ export default function LoginPage() {
     }
 
     try {
-      console.log("🔧 Starting login process for:", email);
-
       // Sign in with Firebase
       const { idToken } = await signIn(email, password);
-      console.log("✅ Firebase sign in successful");
-
       // Create session using API route
       const response = await fetch("/api/auth/session", {
         method: "POST",
@@ -45,16 +41,20 @@ export default function LoginPage() {
         credentials: "include", // Important for cookies
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to create session");
+      const responseData = await response.json();
+      console.log("📋 API Response:", responseData);
+
+      if (!response.ok || !responseData.success) {
+        throw new Error(responseData.error || "Failed to create session");
       }
 
       console.log("✅ Session created successfully");
 
+      // Small delay to ensure cookie is set before redirect
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       // Redirect to dashboard
-      router.push("/dashboard");
-      router.refresh(); // Force refresh to update server-side auth state
+      window.location.href = "/dashboard"; // Use window.location for hard redirect
     } catch (error: any) {
       console.error("❌ Login error:", error);
       setError(error.message || "An error occurred during login");

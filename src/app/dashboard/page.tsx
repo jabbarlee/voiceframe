@@ -21,20 +21,27 @@ export default function DashboardPage() {
 
   const checkAuth = async () => {
     try {
+      console.log("🔍 Checking authentication status...");
+      console.log("🍪 Current cookies:", document.cookie);
+
       const response = await fetch("/api/auth/verify", {
         credentials: "include",
       });
 
+      console.log("📋 Auth response status:", response.status);
+
       if (!response.ok) {
-        router.push("/login");
+        console.log("❌ Authentication failed, redirecting to login");
+        window.location.href = "/login";
         return;
       }
 
       const data = await response.json();
+      console.log("✅ Authentication successful:", data);
       setUser(data.user);
     } catch (error) {
-      console.error("Auth check failed:", error);
-      router.push("/login");
+      console.error("❌ Auth check failed:", error);
+      window.location.href = "/login";
     } finally {
       setLoading(false);
     }
@@ -42,14 +49,19 @@ export default function DashboardPage() {
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/auth/logout", {
+      const response = await fetch("/api/auth/logout", {
         method: "POST",
         credentials: "include",
       });
 
+      const data = await response.json();
+      console.log("📋 Logout response:", data);
+
       router.push("/login");
     } catch (error) {
-      console.error("Logout error:", error);
+      console.error("❌ Logout error:", error);
+      // Still redirect even if there's an error
+      window.location.href = "/login";
     }
   };
 
