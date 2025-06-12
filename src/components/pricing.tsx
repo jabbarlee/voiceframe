@@ -1,11 +1,12 @@
-import { CheckIcon } from "lucide-react"
-import { Button } from "./ui/button"
+import { CheckIcon } from "lucide-react";
+import { Button } from "./ui/button";
 
 const plans = [
   {
     name: "Starter",
     price: 19,
-    description: "Perfect for individuals getting started with content creation.",
+    description:
+      "Perfect for individuals getting started with content creation.",
     features: [
       "5 hours of transcription/month",
       "10 AI content generations",
@@ -46,14 +47,19 @@ const plans = [
     buttonText: "Contact Sales",
     popular: false,
   },
-]
+];
 
 export function Pricing() {
   return (
-    <section id="pricing" className="w-full py-24">
+    <section
+      id="pricing"
+      className="w-full py-24 bg-white border-t border-gray-200"
+    >
       <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="w-full max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Simple, transparent pricing</h2>
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+            Simple, transparent pricing
+          </h2>
           <p className="mt-4 text-lg text-muted-foreground">
             Choose the plan that works best for your content creation needs.
           </p>
@@ -63,13 +69,15 @@ export function Pricing() {
           {plans.map((plan) => (
             <div
               key={plan.name}
-              className={`relative rounded-2xl border p-8 ${
-                plan.popular ? "border-emerald-500 ring-2 ring-emerald-200" : "border-border"
+              className={`relative rounded-2xl p-8 shadow-lg transition-all hover:shadow-xl ${
+                plan.popular
+                  ? "border-2 border-emerald-500 ring-2 ring-emerald-200 bg-white scale-105"
+                  : "border border-gray-200 bg-white hover:border-emerald-200"
               }`}
             >
               {plan.popular && (
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 transform">
-                  <span className="rounded-full bg-emerald-100 px-4 py-1 text-sm font-medium text-emerald-800">
+                  <span className="rounded-full bg-emerald-600 px-4 py-1 text-sm font-medium text-white shadow-lg">
                     Most Popular
                   </span>
                 </div>
@@ -78,10 +86,20 @@ export function Pricing() {
               <p className="mt-2 text-muted-foreground">{plan.description}</p>
               <div className="mt-6">
                 <p className="text-4xl font-bold">
-                  {typeof plan.price === "number" ? `$${plan.price}` : plan.price}
-                  {typeof plan.price === "number" && <span className="text-lg font-normal text-muted-foreground">/mo</span>}
+                  {typeof plan.price === "number"
+                    ? `$${plan.price}`
+                    : plan.price}
+                  {typeof plan.price === "number" && (
+                    <span className="text-lg font-normal text-muted-foreground">
+                      /mo
+                    </span>
+                  )}
                 </p>
-                <Button className="mt-6 w-full" size="lg" variant={plan.popular ? "default" : "outline"}>
+                <Button
+                  className="mt-6 w-full"
+                  size="lg"
+                  variant={plan.popular ? "default" : "outline"}
+                >
                   {plan.buttonText}
                 </Button>
               </div>
@@ -89,7 +107,9 @@ export function Pricing() {
                 {plan.features.map((feature) => (
                   <li key={feature} className="flex items-start">
                     <CheckIcon className="mr-2 h-5 w-5 flex-shrink-0 text-emerald-500" />
-                    <span className="text-sm text-muted-foreground">{feature}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {feature}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -98,5 +118,5 @@ export function Pricing() {
         </div>
       </div>
     </section>
-  )
+  );
 }
