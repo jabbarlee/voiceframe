@@ -1,6 +1,8 @@
 "use client";
 
 import { useAuth } from "@/components/auth/AuthProvider";
+import { usePageTitle } from "@/components/layout/PageTitleProvider";
+import { useEffect } from "react";
 import {
   BarChart3,
   FileText,
@@ -69,13 +71,18 @@ const recentActivity = [
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const { setTitle } = usePageTitle();
+
+  useEffect(() => {
+    setTitle("Dashboard");
+  }, [setTitle]);
 
   return (
     <div className="p-6">
       {/* Welcome Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">
-          Welcome back, {user?.email?.split("@")[0]}!
+          Welcome back, {user?.email}!
         </h1>
         <p className="text-gray-600 mt-2">
           Here's what's happening with your voice projects today.
