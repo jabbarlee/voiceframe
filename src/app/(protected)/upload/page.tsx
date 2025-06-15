@@ -4,6 +4,7 @@ import { usePageTitle } from "@/components/layout/PageTitleProvider";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { getCurrentUserToken } from "@/lib/auth";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Upload,
   FileAudio,
@@ -15,6 +16,7 @@ import {
   Clock,
   FileText,
   Loader2,
+  Play,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -25,6 +27,7 @@ interface UploadedFile {
   progress: number;
   error?: string;
   uploadedData?: {
+    id: string; // This will be the actual database UUID
     filename: string;
     path: string;
     size: number;
@@ -35,6 +38,7 @@ interface UploadedFile {
 export default function UploadPage() {
   const { setTitle } = usePageTitle();
   const { user } = useAuth();
+  const router = useRouter();
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -228,6 +232,10 @@ export default function UploadPage() {
       default:
         return <Clock className="h-5 w-5 text-gray-400" />;
     }
+  };
+
+  const startTranscription = (audioFileId: string) => {
+    router.push(`/dashboard/audio/${audioFileId}`);
   };
 
   return (
@@ -432,13 +440,30 @@ export default function UploadPage() {
                             </p>
                           </div>
                         </div>
-                        <button
-                          onClick={() => removeFile(uploadedFile.id)}
-                          className="flex-shrink-0 text-gray-400 hover:text-red-500 transition-colors"
-                          disabled={uploadedFile.status === "uploading"}
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
+                        <div className="flex items-center space-x-2">
+                          {uploadedFile.status === "completed" &&
+                            uploadedFile.uploadedData && (
+                              <Button
+                                onClick={() =>
+                                  startTranscription(
+                                    uploadedFile.uploadedData!.id
+                                  )
+                                }
+                                size="sm"
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                              >
+                                <Play className="h-3 w-3 mr-1" />
+                                Start transcribing
+                              </Button>
+                            )}
+                          <button
+                            onClick={() => removeFile(uploadedFile.id)}
+                            className="flex-shrink-0 text-gray-400 hover:text-red-500 transition-colors"
+                            disabled={uploadedFile.status === "uploading"}
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
 
                       {uploadedFile.status === "uploading" && (

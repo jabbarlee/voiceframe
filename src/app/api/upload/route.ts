@@ -62,18 +62,35 @@ export async function POST(request: NextRequest) {
       data: { publicUrl },
     } = supabaseAdmin.storage.from("audio-files").getPublicUrl(filePath);
 
-    // Store file metadata in database (we'll add this table later)
-    const audioFileData = {
-      uid,
-      original_filename: file.name,
-      file_path: filePath,
-      file_size_bytes: file.size,
-      mime_type: file.type,
-      public_url: publicUrl,
-      status: "uploaded",
-    };
+    // Store file metadata in database
+    const { data: audioFileRecord, error: dbError } = await supabaseAdmin
+      .from("audio_files")
+      .insert({
+        uid,
+        original_filename: file.name,
+        file_path: filePath,
+        file_size_bytes: file.size,
+        mime_type: file.type,
+        public_url: publicUrl,
+        status: "uploaded",
+      })
+      .select()
+      .single();
 
-    console.log("✅ File uploaded successfully:", {
+    if (dbError) {
+      console.error("❌ Database insert error:", dbError);
+
+      // Try to clean up the uploaded file if database insert fails
+      await supabaseAdmin.storage.from("audio-files").remove([filePath]);
+
+      return NextResponse.json(
+        { success: false, error: "Failed to save file metadata" },
+        { status: 500 }
+      );
+    }
+
+    console.log("✅ File uploaded and saved successfully:", {
+      id: audioFileRecord.id,
       filename: file.name,
       path: filePath,
       size: file.size,
@@ -83,6 +100,7 @@ export async function POST(request: NextRequest) {
       success: true,
       message: "File uploaded successfully",
       data: {
+        id: audioFileRecord.id,
         filename: file.name,
         path: filePath,
         size: file.size,

@@ -8,7 +8,7 @@ CREATE TABLE public.users (
 );
 
 -- Audio files table - Store uploaded audio file metadata
-CREATE TABLE audio_files (
+CREATE TABLE IF NOT EXISTS audio_files (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     uid TEXT NOT NULL REFERENCES users(uid) ON DELETE CASCADE,
     original_filename TEXT NOT NULL,
@@ -22,9 +22,10 @@ CREATE TABLE audio_files (
 );
 
 -- Audio files indexes
-CREATE INDEX idx_audio_files_uid ON audio_files(uid);
-CREATE INDEX idx_audio_files_status ON audio_files(status);
-CREATE INDEX idx_audio_files_created_at ON audio_files(created_at);
+CREATE INDEX IF NOT EXISTS idx_audio_files_uid ON audio_files(uid);
+CREATE INDEX IF NOT EXISTS idx_audio_files_status ON audio_files(status);
+CREATE INDEX IF NOT EXISTS idx_audio_files_created_at ON audio_files(created_at);
 
 -- Add trigger for audio_files
+DROP TRIGGER IF EXISTS update_audio_files_updated_at ON audio_files;
 CREATE TRIGGER update_audio_files_updated_at BEFORE UPDATE ON audio_files FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
