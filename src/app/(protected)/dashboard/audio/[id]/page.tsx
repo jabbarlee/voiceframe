@@ -18,6 +18,7 @@ import {
   Calendar,
   HardDrive,
   Type,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -276,10 +277,22 @@ Thank you all for your hard work on this project. The results speak for themselv
                 <span className="hidden sm:inline">Processing...</span>
               </Button>
             ) : (
-              <Button className="bg-emerald-600 hover:bg-emerald-700 flex items-center space-x-2">
-                <Download className="h-4 w-4" />
-                <span className="hidden sm:inline">Download Transcript</span>
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  className="flex items-center space-x-2"
+                >
+                  <Download className="h-4 w-4" />
+                  <span className="hidden sm:inline">Download Transcript</span>
+                </Button>
+                <Button
+                  onClick={() => router.push(`/dashboard/content/${audioId}`)}
+                  className="bg-emerald-600 hover:bg-emerald-700 flex items-center space-x-2"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  <span className="hidden sm:inline">Generate Content</span>
+                </Button>
+              </>
             )}
           </div>
         </div>
