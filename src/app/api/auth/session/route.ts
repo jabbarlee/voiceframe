@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth } from "@/lib/firebase-admin";
 import { cookies } from "next/headers";
+import { supabaseAdmin } from "@/lib/supabase-admin"; // Use client-side Supabase for user operations
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,58 +10,72 @@ export async function POST(req: NextRequest) {
 
     if (!idToken) {
       return NextResponse.json(
-        { error: "ID token is required" },
+        { success: false, error: "ID token is required" },
         { status: 400 }
       );
     }
 
-    console.log("🔧 Creating session cookie...");
+    let decodedToken;
+    try {
+      decodedToken = await adminAuth.verifyIdToken(idToken);
+    } catch (error) {
+      console.error("❌ Invalid ID token:", error);
+      return NextResponse.json(
+        { success: false, error: "Invalid authentication token" },
+        { status: 401 }
+      );
+    }
 
-    // Verify the ID token first
-    const decodedToken = await adminAuth.verifyIdToken(idToken);
+    const { uid, email, name, picture } = decodedToken;
 
-    // Create session cookie that expires in 5 days
-    const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days in milliseconds
+    // Check if user exists in Supabase, create if not (fallback safety)
+    const { data: existingUser, error: checkError } = await supabaseAdmin
+      .from("users")
+      .select("uid")
+      .eq("uid", uid)
+      .single();
+
+    if (checkError && checkError.code === "PGRST116") {
+      // User doesn't exist, create them
+      console.log("🔄 Creating user in database (fallback)");
+      const { error: insertError } = await supabaseAdmin.from("users").insert({
+        uid,
+        email,
+        full_name: name || null,
+        avatar_url: picture || null,
+      });
+
+      if (insertError && insertError.code !== "23505") {
+        // Ignore duplicate key errors, log others
+        console.error("❌ Error creating user:", insertError);
+      }
+    }
+
+    // Create session cookie
+    const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
     const sessionCookie = await adminAuth.createSessionCookie(idToken, {
       expiresIn,
     });
 
-    console.log("✅ Session cookie created successfully");
-
-    // Create response first
-    const response = NextResponse.json(
-      {
-        message: "Session created successfully",
-        uid: decodedToken.uid,
-        success: true,
-      },
-      { status: 200 }
-    );
-
-    // Set the session cookie with explicit options
-    cookieStore.set("session", sessionCookie, {
-      httpOnly: true, // Temporarily set to false for debugging
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: Math.floor(expiresIn / 1000),
-      path: "/",
+    const response = NextResponse.json({
+      success: true,
+      message: "Session created successfully",
     });
 
-    console.log("✅ Session cookie set with options:", {
-      httpOnly: true, // Updated for debugging
+    response.cookies.set("session", sessionCookie, {
+      maxAge: expiresIn,
+      httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: Math.floor(expiresIn / 1000),
       path: "/",
-      cookieValue: sessionCookie.substring(0, 50) + "...",
     });
 
     return response;
-  } catch (error: any) {
+  } catch (error) {
     console.error("❌ Session creation error:", error);
     return NextResponse.json(
-      { error: "Failed to create session", success: false },
-      { status: 401 }
+      { success: false, error: "Failed to create session" },
+      { status: 500 }
     );
   }
 }

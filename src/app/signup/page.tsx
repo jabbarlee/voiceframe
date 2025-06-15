@@ -78,32 +78,56 @@ export default function SignUpPage() {
     setError("");
 
     try {
-      // Sign up with Firebase
+      // Step 1: Sign up with Firebase
       const { idToken } = await signUp(formData.email, formData.password);
+      console.log("✅ Firebase signup successful");
 
-      // Create session using API route
-      const response = await fetch("/api/auth/session", {
+      // Step 2: Create user in Supabase database
+      const supabaseResponse = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          idToken,
+          fullName: formData.fullName,
+        }),
+        credentials: "include",
+      });
+
+      const supabaseData = await supabaseResponse.json();
+      console.log("📋 Supabase Response:", supabaseData);
+
+      if (!supabaseResponse.ok || !supabaseData.success) {
+        throw new Error(supabaseData.error || "Failed to create user profile");
+      }
+
+      console.log("✅ User profile created in database");
+
+      // Step 3: Create session using existing session API
+      const sessionResponse = await fetch("/api/auth/session", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ idToken }),
-        credentials: "include", // Important for cookies
+        credentials: "include",
       });
 
-      const responseData = await response.json();
-      console.log("📋 API Response:", responseData);
+      const sessionData = await sessionResponse.json();
+      console.log("📋 Session Response:", sessionData);
 
-      if (!response.ok || !responseData.success) {
-        throw new Error(responseData.error || "Failed to create session");
+      if (!sessionResponse.ok || !sessionData.success) {
+        throw new Error(sessionData.error || "Failed to create session");
       }
 
       console.log("✅ Session created successfully");
 
-      // Small delay to ensure cookie is set before redirect
+      // Small delay to ensure everything is set before redirect
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      router.push("/dashboard"); // Use router.push for client-side navigation
+      // Redirect to dashboard
+      router.push("/dashboard");
     } catch (error: any) {
       console.error("❌ Signup error:", error);
       setError(error.message || "An error occurred during signup");
