@@ -1,14 +1,34 @@
 import { auth } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 export const getCurrentUserToken = async (): Promise<string | null> => {
-  try {
-    const user = auth.currentUser;
-    if (!user) {
-      throw new Error("No authenticated user");
+  return new Promise((resolve) => {
+    // If user is already available, get token immediately
+    if (auth.currentUser) {
+      auth.currentUser
+        .getIdToken()
+        .then(resolve)
+        .catch((error) => {
+          console.error("Error getting user token:", error);
+          resolve(null);
+        });
+      return;
     }
-    return await user.getIdToken();
-  } catch (error) {
-    console.error("Error getting user token:", error);
-    return null;
-  }
+
+    // Otherwise, wait for auth state to be determined
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      unsubscribe(); // Clean up listener
+      if (user) {
+        user
+          .getIdToken()
+          .then(resolve)
+          .catch((error) => {
+            console.error("Error getting user token:", error);
+            resolve(null);
+          });
+      } else {
+        resolve(null);
+      }
+    });
+  });
 };

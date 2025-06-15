@@ -71,7 +71,7 @@ Thank you all for your hard work on this project. The results speak for themselv
     setTitle("Live Transcription");
   }, [setTitle]);
 
-  // Fetch audio metadata
+  // Fetch audio metadata - wait for user to be loaded
   useEffect(() => {
     const fetchAudioMetadata = async () => {
       try {
@@ -102,9 +102,15 @@ Thank you all for your hard work on this project. The results speak for themselv
       }
     };
 
+    // Only fetch when we have a user and audioId
     if (user && audioId) {
       fetchAudioMetadata();
+    } else if (user === null) {
+      // User is explicitly null (not authenticated)
+      setError("Please sign in to access this page");
+      setIsLoading(false);
     }
+    // If user is undefined, we're still loading auth state
   }, [user, audioId]);
 
   // Simulate transcription progress
@@ -172,9 +178,44 @@ Thank you all for your hard work on this project. The results speak for themselv
     );
   };
 
+  // Show loading while waiting for auth state
+  if (user === undefined) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <div className="flex items-center space-x-2">
+          <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
+          <span className="text-gray-600">Authenticating...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error if not authenticated
+  if (!user) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-500 mb-2">🔒</div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            Authentication Required
+          </h3>
+          <p className="text-gray-600 mb-4">
+            Please sign in to access this page
+          </p>
+          <Button
+            onClick={() => router.push("/login")}
+            className="bg-emerald-600 hover:bg-emerald-700"
+          >
+            Sign In
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
-      <div className="h-full flex items-center justify-center">
+      <div className="h-screen flex items-center justify-center">
         <div className="flex items-center space-x-2">
           <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
           <span className="text-gray-600">Loading audio file...</span>
@@ -185,7 +226,7 @@ Thank you all for your hard work on this project. The results speak for themselv
 
   if (error || !audioMetadata) {
     return (
-      <div className="h-full flex items-center justify-center">
+      <div className="h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="text-red-500 mb-2">❌</div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Error</h3>
@@ -201,47 +242,51 @@ Thank you all for your hard work on this project. The results speak for themselv
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-screen flex flex-col bg-gray-50">
       {/* Header */}
-      <div className="flex-shrink-0 flex items-center justify-between p-6 bg-white border-b border-gray-200">
-        <div className="flex items-center space-x-4">
-          <Button
-            variant="ghost"
-            onClick={() => router.back()}
-            className="flex items-center space-x-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span>Back</span>
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Live Transcription
-            </h1>
-            <p className="text-gray-600">{audioMetadata.original_filename}</p>
-          </div>
-        </div>
-
-        <div className="flex items-center space-x-3">
-          {isTranscribing ? (
+      <div className="flex-shrink-0 bg-white border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
             <Button
-              variant="outline"
-              disabled
+              variant="ghost"
+              onClick={() => router.back()}
               className="flex items-center space-x-2"
             >
-              <Pause className="h-4 w-4" />
-              <span>Processing...</span>
+              <ArrowLeft className="h-4 w-4" />
+              <span>Back</span>
             </Button>
-          ) : (
-            <Button className="bg-emerald-600 hover:bg-emerald-700 flex items-center space-x-2">
-              <Download className="h-4 w-4" />
-              <span>Download Transcript</span>
-            </Button>
-          )}
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Live Transcription
+              </h1>
+              <p className="text-gray-600 truncate max-w-md">
+                {audioMetadata.original_filename}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-3">
+            {isTranscribing ? (
+              <Button
+                variant="outline"
+                disabled
+                className="flex items-center space-x-2"
+              >
+                <Pause className="h-4 w-4" />
+                <span className="hidden sm:inline">Processing...</span>
+              </Button>
+            ) : (
+              <Button className="bg-emerald-600 hover:bg-emerald-700 flex items-center space-x-2">
+                <Download className="h-4 w-4" />
+                <span className="hidden sm:inline">Download Transcript</span>
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Progress/Completion Banner */}
-      <div className="flex-shrink-0 p-6 pb-0">
+      <div className="flex-shrink-0 px-6 pt-4">
         {isTranscribing ? (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
@@ -275,105 +320,98 @@ Thank you all for your hard work on this project. The results speak for themselv
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex gap-6 p-6 overflow-hidden">
+      <div className="flex-1 flex flex-col lg:flex-row gap-6 p-6 min-h-0 overflow-hidden">
         {/* Left Side - Audio Metadata */}
-        <div className="w-80 flex-shrink-0">
-          <div className="bg-white rounded-xl border border-gray-200 p-6 h-full overflow-y-auto">
-            <div className="flex items-center space-x-3 mb-6">
-              <div className="p-2 bg-emerald-100 rounded-lg">
-                <FileAudio className="h-6 w-6 text-emerald-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Audio File
-                </h3>
-                <p className="text-sm text-gray-500">Metadata & Information</p>
+        <div className="w-full lg:w-80 lg:flex-shrink-0">
+          <div className="bg-white rounded-xl border border-gray-200 h-full flex flex-col">
+            <div className="flex-shrink-0 p-6 border-b border-gray-200">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-emerald-100 rounded-lg">
+                  <FileAudio className="h-6 w-6 text-emerald-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Audio File
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    Metadata & Information
+                  </p>
+                </div>
               </div>
             </div>
 
-            <div className="space-y-4">
-              {/* File Name */}
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center space-x-2 mb-1">
-                  <Type className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm font-medium text-gray-700">
-                    Filename
-                  </span>
-                </div>
-                <p className="text-sm text-gray-900 font-mono break-all">
-                  {audioMetadata.original_filename}
-                </p>
-              </div>
-
-              {/* File Size */}
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center space-x-2 mb-1">
-                  <HardDrive className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm font-medium text-gray-700">
-                    File Size
-                  </span>
-                </div>
-                <p className="text-sm text-gray-900">
-                  {formatFileSize(audioMetadata.file_size_bytes)}
-                </p>
-              </div>
-
-              {/* Format */}
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center space-x-2 mb-1">
-                  <Database className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm font-medium text-gray-700">
-                    Format
-                  </span>
-                </div>
-                <p className="text-sm text-gray-900">
-                  {getMimeTypeDisplay(audioMetadata.mime_type)}
-                </p>
-              </div>
-
-              {/* Upload Date */}
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center space-x-2 mb-1">
-                  <Calendar className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm font-medium text-gray-700">
-                    Uploaded
-                  </span>
-                </div>
-                <p className="text-sm text-gray-900">
-                  {formatDate(audioMetadata.created_at)}
-                </p>
-              </div>
-
-              {/* File Path */}
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center space-x-2 mb-1">
-                  <Database className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm font-medium text-gray-700">
-                    Storage Path
-                  </span>
-                </div>
-                <p className="text-xs text-gray-900 font-mono break-all">
-                  {audioMetadata.file_path}
-                </p>
-              </div>
-
-              {/* Processing Status */}
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center space-x-2 mb-1">
-                  <div className="flex items-center space-x-2">
-                    {isTranscribing ? (
-                      <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
-                    ) : (
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                    )}
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="space-y-4">
+                {/* File Name */}
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-2 mb-1">
+                    <Type className="h-4 w-4 text-gray-500" />
                     <span className="text-sm font-medium text-gray-700">
-                      Status
+                      Filename
                     </span>
                   </div>
+                  <p className="text-sm text-gray-900 font-mono break-all">
+                    {audioMetadata.original_filename}
+                  </p>
                 </div>
-                <p className="text-sm text-gray-900 capitalize">
-                  {isTranscribing ? "Processing" : "Completed"}
-                </p>
+
+                {/* File Size */}
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-2 mb-1">
+                    <HardDrive className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm font-medium text-gray-700">
+                      File Size
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-900">
+                    {formatFileSize(audioMetadata.file_size_bytes)}
+                  </p>
+                </div>
+
+                {/* Format */}
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-2 mb-1">
+                    <Database className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm font-medium text-gray-700">
+                      Format
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-900">
+                    {getMimeTypeDisplay(audioMetadata.mime_type)}
+                  </p>
+                </div>
+
+                {/* Upload Date */}
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-2 mb-1">
+                    <Calendar className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm font-medium text-gray-700">
+                      Uploaded
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-900">
+                    {formatDate(audioMetadata.created_at)}
+                  </p>
+                </div>
+
+                {/* Processing Status */}
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-2 mb-1">
+                    <div className="flex items-center space-x-2">
+                      {isTranscribing ? (
+                        <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
+                      ) : (
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                      )}
+                      <span className="text-sm font-medium text-gray-700">
+                        Status
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-900 capitalize">
+                    {isTranscribing ? "Processing" : "Completed"}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -403,13 +441,15 @@ Thank you all for your hard work on this project. The results speak for themselv
                         .filter((word) => word.length > 0).length
                     }
                   </span>
-                  <span>•</span>
-                  <span>Characters: {currentTranscript.length}</span>
+                  <span className="hidden sm:inline">•</span>
+                  <span className="hidden sm:inline">
+                    Characters: {currentTranscript.length}
+                  </span>
                 </div>
               </div>
             </div>
 
-            <div className="flex-1 p-6 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto p-6">
               <div className="prose prose-gray max-w-none">
                 <div className="text-gray-800 leading-relaxed font-serif text-base whitespace-pre-wrap">
                   {currentTranscript}

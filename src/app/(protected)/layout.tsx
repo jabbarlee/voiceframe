@@ -1,5 +1,3 @@
-"use client";
-
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { Sidebar } from "@/components/ui/Sidebar";
 import { PageTitleProvider } from "@/components/layout/PageTitleProvider";
@@ -19,7 +17,6 @@ export default function ProtectedLayout({
 
           {/* Main Content */}
           <div className="flex-1 flex flex-col overflow-hidden">
-            {/* Page Content */}
             <main className="flex-1 overflow-y-auto">{children}</main>
           </div>
         </div>
