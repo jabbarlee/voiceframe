@@ -10,7 +10,10 @@ import {
   AtSign,
   ImageIcon,
   Calendar,
+  Clock,
   BarChart3,
+  TrendingUp,
+
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -290,65 +293,103 @@ export function MarketingSocialMedia() {
   );
 
   return (
-    <div className="space-y-6">
-      {/* Format Selector */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+    <div className="space-y-8">
+      {/* Format Selector - Enhanced with Rounded Corners */}
+      <div>
+        <h3 className="text-xl font-semibold text-gray-900 mb-6">
           Social Media Formats
         </h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {formatOptions.map((format) => {
             const Icon = format.icon;
+            const isActive = activeFormat === format.id;
             return (
               <button
                 key={format.id}
                 onClick={() => setActiveFormat(format.id)}
-                className={`p-3 rounded-lg border-2 transition-all ${
-                  activeFormat === format.id
-                    ? "border-blue-200 bg-blue-50"
-                    : "border-gray-200 hover:border-gray-300"
+                className={`group relative p-6 rounded-3xl border-2 transition-all duration-300 ${
+                  isActive
+                    ? "border-emerald-200 bg-emerald-50 shadow-lg shadow-emerald-500/10 scale-105"
+                    : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-md"
                 }`}
               >
-                <Icon className={`h-6 w-6 ${format.color} mx-auto mb-2`} />
-                <p className="text-sm font-medium text-gray-900">
-                  {format.label}
-                </p>
+                <div className="flex flex-col items-center text-center">
+                  <div
+                    className={`w-12 h-12 ${
+                      format.color
+                    } rounded-2xl flex items-center justify-center mb-3 ${
+                      isActive ? "shadow-lg" : "shadow-sm"
+                    }`}
+                  >
+                    <Icon className="h-6 w-6 text-white" />
+                  </div>
+                  <h4 className="font-semibold text-gray-900 mb-1">
+                    {format.label}
+                  </h4>
+                </div>
+                {isActive && (
+                  <div className="absolute top-3 right-3 w-3 h-3 bg-emerald-500 rounded-full"></div>
+                )}
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Content Preview */}
-      <div className="bg-gray-50 border border-gray-200 rounded-xl p-6">
+      {/* Content Preview - Enhanced Container */}
+      <div className="bg-gray-50 rounded-3xl p-8 border border-gray-200/60">
         {activeFormat === "twitter" && renderTwitterThread()}
         {activeFormat === "instagram" && renderInstagramPost()}
         {activeFormat === "linkedin" && renderLinkedInPost()}
         {activeFormat === "facebook" && renderFacebookPost()}
       </div>
 
-      {/* Analytics & Optimization */}
-      <div className="bg-green-50 border border-green-200 rounded-xl p-6">
-        <h4 className="font-semibold text-green-900 mb-4 flex items-center">
+      {/* Analytics & Optimization - Enhanced Design */}
+      <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-3xl p-6 border border-green-200/60">
+        <h4 className="font-semibold text-green-900 mb-6 flex items-center text-lg">
           <BarChart3 className="h-5 w-5 mr-2" />
-          Optimization Insights
+          Performance Insights
         </h4>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-          <div className="bg-white rounded-lg p-3 border border-green-200">
-            <span className="font-medium text-green-800">
-              Best Posting Time:
-            </span>
-            <p className="text-green-700">Tuesday 2-4 PM</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Enhanced stat cards with rounded corners */}
+          <div className="bg-white rounded-2xl p-4 border border-green-200/60 shadow-sm">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-green-100 rounded-2xl flex items-center justify-center">
+                <Clock className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <span className="font-semibold text-green-900">
+                  Best Posting Time
+                </span>
+                <p className="text-green-700 text-sm">Tuesday 2-4 PM</p>
+              </div>
+            </div>
           </div>
-          <div className="bg-white rounded-lg p-3 border border-green-200">
-            <span className="font-medium text-green-800">
-              Engagement Score:
-            </span>
-            <p className="text-green-700">8.5/10</p>
+          <div className="bg-white rounded-2xl p-4 border border-green-200/60 shadow-sm">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-green-100 rounded-2xl flex items-center justify-center">
+                <TrendingUp className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <span className="font-semibold text-green-900">
+                  Engagement Score
+                </span>
+                <p className="text-green-700 text-sm">8.5/10</p>
+              </div>
+            </div>
           </div>
-          <div className="bg-white rounded-lg p-3 border border-green-200">
-            <span className="font-medium text-green-800">Hashtag Reach:</span>
-            <p className="text-green-700">5K-15K potential</p>
+          <div className="bg-white rounded-2xl p-4 border border-green-200/60 shadow-sm">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-green-100 rounded-2xl flex items-center justify-center">
+                <Hash className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <span className="font-semibold text-green-900">
+                  Hashtag Reach
+                </span>
+                <p className="text-green-700 text-sm">5K-15K potential</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>

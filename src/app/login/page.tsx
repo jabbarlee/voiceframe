@@ -53,8 +53,7 @@ export default function LoginPage() {
       // Small delay to ensure cookie is set before redirect
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      // Redirect to dashboard
-      window.location.href = "/dashboard"; // Use window.location for hard redirect
+      router.push("/dashboard");
     } catch (error: any) {
       console.error("❌ Login error:", error);
       setError(error.message || "An error occurred during login");
