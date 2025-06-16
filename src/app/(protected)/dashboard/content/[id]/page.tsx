@@ -2,37 +2,28 @@
 
 import { usePageTitle } from "@/components/layout/PageTitleProvider";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
-  Copy,
-  Download,
-  Loader2,
-  Sparkles,
-  ChevronDown,
-  Twitter,
+  Megaphone,
   FileText,
-  Table,
+  Mail,
+  Building,
+  GraduationCap,
+  PlayCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  TwitterThreads,
-  TwitterThreadsRef,
-} from "@/components/pages/content/TwitterThreads";
+import { ContentHeader } from "@/components/pages/content/ContentHeader";
+import { MarketingSocialMedia } from "@/components/pages/content/industries/MarketingSocialMedia";
+import { BloggingJournalism } from "@/components/pages/content/industries/BloggingJournalism";
 
-interface ContentItem {
-  id: number;
-  content: string;
-  type?: string;
-}
-
-interface ContentType {
+interface Industry {
   id: string;
-  title: string;
+  name: string;
   description: string;
   icon: React.ComponentType<{ className?: string }>;
-  items: ContentItem[];
+  contentTypes: string[];
 }
 
 export default function ContentGenerationPage() {
@@ -42,137 +33,74 @@ export default function ContentGenerationPage() {
   const router = useRouter();
   const audioId = params.id as string;
 
-  const [activeTab, setActiveTab] = useState("twitter");
-  const [currentItemIndex, setCurrentItemIndex] = useState(0);
-  const [copiedContent, setCopiedContent] = useState<string | null>(null);
-  const twitterThreadsRef = useRef<TwitterThreadsRef>(null);
-  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
-  const [copySuccess, setCopySuccess] = useState(false);
+  const [selectedIndustry, setSelectedIndustry] = useState("marketing");
 
-  // Content types with Twitter Threads
-  const contentTypes: ContentType[] = [
+  const industries: Industry[] = [
     {
-      id: "twitter",
-      title: "Twitter Threads",
-      description:
-        "Create engaging Twitter thread content with interactive editing",
-      icon: Twitter,
-      items: [
-        {
-          id: 1,
-          content: `Why voice technology is the next big business disruptor 🧵
-
-We're witnessing a fundamental shift in how businesses handle information. Voice technology isn't just a trend—it's becoming essential infrastructure.
-
-The numbers speak for themselves:
-• 70% productivity increase
-• 80% reduction in transcription costs  
-• 50% faster content creation
-• Universal accessibility benefits
-
-Traditional workflows looked like this:
-Record → Manual transcription → Edit → Create content → Publish
-
-New voice-first workflow:
-Speak → Instant transcription → AI content generation → Multi-format output
-
-The real game-changer? Voice removes the friction between ideas and execution. No more "I'll write that down later" moments that never happen.
-
-Accessibility wins: Voice technology opens doors for:
-• Non-native speakers
-• Users with motor disabilities  
-• People who think better out loud
-• Anyone who prefers speaking to typing
-
-Cost impact is massive. Companies spending $1000s on transcription services can now get better results for a fraction of the cost.
-
-The future belongs to businesses that can move from idea to content at the speed of speech. Are you ready to make the leap? 🚀`,
-        },
-        {
-          id: 2,
-          content: `🎙️ Voice technology isn't replacing writers—it's amplifying human creativity. Speak your ideas, let AI handle the formatting. Focus on what matters: your unique perspective and insights.
-
-The best content creators of 2024 will be those who master voice-to-content workflows. Why type when you can speak and get better results faster?
-
-Just spent 5 minutes speaking and got a full blog post, social media content, and key talking points. The future of content creation is here and it's incredible 🤯`,
-        },
+      id: "marketing",
+      name: "Marketing & Social Media",
+      description: "Social posts, ad copy, campaigns",
+      icon: Megaphone,
+      contentTypes: [
+        "Twitter Threads",
+        "Instagram Posts",
+        "LinkedIn Content",
+        "Facebook Posts",
       ],
+    },
+    {
+      id: "blogging",
+      name: "Blogging & Journalism",
+      description: "Articles, blog posts, interviews",
+      icon: FileText,
+      contentTypes: [
+        "Blog Posts",
+        "News Articles",
+        "Interviews",
+        "Case Studies",
+      ],
+    },
+    {
+      id: "email",
+      name: "Email Marketing",
+      description: "Newsletters, campaigns, sequences",
+      icon: Mail,
+      contentTypes: ["Newsletters", "Email Campaigns", "Drip Sequences"],
+    },
+    {
+      id: "corporate",
+      name: "Corporate & Business",
+      description: "Reports, summaries, documentation",
+      icon: Building,
+      contentTypes: ["Meeting Minutes", "Executive Summaries", "Reports"],
+    },
+    {
+      id: "education",
+      name: "Education & Research",
+      description: "Notes, summaries, study guides",
+      icon: GraduationCap,
+      contentTypes: ["Lecture Notes", "Research Summaries", "Study Guides"],
+    },
+    {
+      id: "media",
+      name: "Media & Entertainment",
+      description: "Show notes, scripts, captions",
+      icon: PlayCircle,
+      contentTypes: ["Show Notes", "Subtitles", "Scripts"],
     },
   ];
 
   useEffect(() => {
-    setTitle("Content Generation");
+    setTitle("AI Content Generation");
   }, [setTitle]);
-
-  useEffect(() => {
-    setCurrentItemIndex(0);
-  }, [activeTab]);
-
-  const handleCopyContent = async (content: string, type: string) => {
-    try {
-      await navigator.clipboard.writeText(content);
-      setCopiedContent(type);
-      setTimeout(() => setCopiedContent(null), 2000);
-    } catch (error) {
-      console.error("Failed to copy content:", error);
-    }
-  };
-
-  const handleDownloadContent = (content: string, type: string) => {
-    const blob = new Blob([content], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${type}-content-${audioId}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  // Twitter-specific export functions
-  const handleTwitterCopyAsText = async () => {
-    try {
-      await twitterThreadsRef.current?.copyAsText();
-      setCopySuccess(true);
-      setTimeout(() => setCopySuccess(false), 2000);
-      setShowDownloadMenu(false);
-    } catch (error) {
-      console.error("Failed to copy:", error);
-    }
-  };
-
-  const handleTwitterExportAsText = () => {
-    twitterThreadsRef.current?.exportAsText();
-    setShowDownloadMenu(false);
-  };
-
-  const handleTwitterExportAsCSV = () => {
-    twitterThreadsRef.current?.exportAsCSV();
-    setShowDownloadMenu(false);
-  };
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (showDownloadMenu) {
-        setShowDownloadMenu(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showDownloadMenu]);
 
   // Show loading while waiting for auth state
   if (user === undefined) {
     return (
       <div className="h-screen flex items-center justify-center">
         <div className="flex items-center space-x-2">
-          <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
-          <span className="text-gray-600">Authenticating...</span>
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-emerald-600"></div>
+          <span className="text-gray-600">Loading...</span>
         </div>
       </div>
     );
@@ -201,9 +129,9 @@ Just spent 5 minutes speaking and got a full blog post, social media content, an
     );
   }
 
-  const activeContent = contentTypes.find((type) => type.id === activeTab);
-  const currentItem = activeContent?.items[currentItemIndex];
-  const hasMultipleItems = (activeContent?.items.length || 0) > 1;
+  const selectedIndustryData = industries.find(
+    (i) => i.id === selectedIndustry
+  );
 
   return (
     <div className="h-screen flex flex-col bg-gray-50">
@@ -224,7 +152,7 @@ Just spent 5 minutes speaking and got a full blog post, social media content, an
                 AI Content Generation
               </h1>
               <p className="text-gray-600">
-                Transform your transcript into engaging content
+                Transform your transcript into industry-specific content
               </p>
             </div>
           </div>
@@ -232,9 +160,9 @@ Just spent 5 minutes speaking and got a full blog post, social media content, an
           <div className="flex items-center space-x-3">
             <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
               <div className="flex items-center space-x-2">
-                <Sparkles className="h-4 w-4 text-emerald-600" />
+                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
                 <span className="text-emerald-800 font-medium text-sm">
-                  Content ready to view!
+                  Content Generated Successfully
                 </span>
               </div>
             </div>
@@ -244,32 +172,32 @@ Just spent 5 minutes speaking and got a full blog post, social media content, an
 
       {/* Main Content */}
       <div className="flex-1 flex gap-6 p-6 min-h-0 overflow-hidden">
-        {/* Left Side - Content Type Selector */}
+        {/* Left Sidebar - Industry Selector */}
         <div className="w-80 flex-shrink-0">
           <div className="bg-white rounded-xl border border-gray-200 h-full flex flex-col">
             <div className="flex-shrink-0 p-6 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900">
-                Content Types
+                Industry & Content Types
               </h3>
               <p className="text-sm text-gray-500 mt-1">
-                Select a format to view generated content
+                Select your industry to view optimized content formats
               </p>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4">
-              <div className="space-y-2">
-                {contentTypes.map((type) => {
-                  const Icon = type.icon;
-                  const isActive = activeTab === type.id;
+              <div className="space-y-3">
+                {industries.map((industry) => {
+                  const Icon = industry.icon;
+                  const isActive = selectedIndustry === industry.id;
 
                   return (
                     <button
-                      key={type.id}
-                      onClick={() => setActiveTab(type.id)}
+                      key={industry.id}
+                      onClick={() => setSelectedIndustry(industry.id)}
                       className={`w-full p-4 rounded-lg text-left transition-all duration-200 ${
                         isActive
                           ? "bg-emerald-50 border-2 border-emerald-200 shadow-sm"
-                          : "bg-gray-50 border-2 border-transparent hover:bg-gray-100"
+                          : "bg-gray-50 border-2 border-transparent hover:bg-gray-100 hover:border-gray-200"
                       }`}
                     >
                       <div className="flex items-start space-x-3">
@@ -284,21 +212,50 @@ Just spent 5 minutes speaking and got a full blog post, social media content, an
                             }`}
                           />
                         </div>
-                        <div className="flex-1">
+                        <div className="flex-1 min-w-0">
                           <h4
                             className={`font-medium ${
                               isActive ? "text-emerald-900" : "text-gray-900"
                             }`}
                           >
-                            {type.title}
+                            {industry.name}
                           </h4>
                           <p
                             className={`text-sm mt-1 ${
                               isActive ? "text-emerald-600" : "text-gray-500"
                             }`}
                           >
-                            {type.description}
+                            {industry.description}
                           </p>
+                          <div className="mt-2">
+                            <div className="flex flex-wrap gap-1">
+                              {industry.contentTypes
+                                .slice(0, 2)
+                                .map((type, i) => (
+                                  <span
+                                    key={i}
+                                    className={`text-xs px-2 py-1 rounded-full ${
+                                      isActive
+                                        ? "bg-emerald-100 text-emerald-700"
+                                        : "bg-gray-100 text-gray-600"
+                                    }`}
+                                  >
+                                    {type}
+                                  </span>
+                                ))}
+                              {industry.contentTypes.length > 2 && (
+                                <span
+                                  className={`text-xs px-2 py-1 rounded-full ${
+                                    isActive
+                                      ? "bg-emerald-100 text-emerald-700"
+                                      : "bg-gray-100 text-gray-600"
+                                  }`}
+                                >
+                                  +{industry.contentTypes.length - 2}
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </button>
@@ -310,127 +267,60 @@ Just spent 5 minutes speaking and got a full blog post, social media content, an
         </div>
 
         {/* Right Side - Content Display */}
-        <div className="flex-1 min-w-0">
-          <div className="bg-white rounded-xl border border-gray-200 h-full flex flex-col">
-            {activeContent ? (
-              <>
-                <div className="flex-shrink-0 p-6 border-b border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2 bg-emerald-100 rounded-lg">
-                        <activeContent.icon className="h-5 w-5 text-emerald-600" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900">
-                          {activeContent.title}
-                        </h3>
-                        <p className="text-sm text-gray-500">
-                          Generated from your audio transcript
-                        </p>
-                      </div>
-                    </div>
+        <div className="flex-1 min-w-0 flex flex-col">
+          {/* Content Header */}
+          <ContentHeader
+            title={selectedIndustryData?.name || "Content Generation"}
+            industry={selectedIndustryData?.description || ""}
+            contentType="Multi-format Content"
+          />
 
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() =>
-                          currentItem &&
-                          handleCopyContent(
-                            currentItem.content,
-                            activeContent?.id || ""
-                          )
-                        }
-                        className="flex items-center space-x-2"
-                      >
-                        <Copy className="h-4 w-4" />
-                        <span>
-                          {copiedContent === activeContent?.id
-                            ? "Copied!"
-                            : "Copy"}
-                        </span>
-                      </Button>
-
-                      {/* Download Button with Dropdown */}
-                      <div className="relative">
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            if (activeTab === "twitter") {
-                              setShowDownloadMenu(!showDownloadMenu);
-                            } else {
-                              currentItem &&
-                                handleDownloadContent(
-                                  currentItem.content,
-                                  activeContent?.title || ""
-                                );
-                            }
-                          }}
-                          className="bg-emerald-600 hover:bg-emerald-700 flex items-center space-x-2"
-                        >
-                          <Download className="h-4 w-4" />
-                          <span>Download</span>
-                          {activeTab === "twitter" && (
-                            <ChevronDown className="h-4 w-4" />
-                          )}
-                        </Button>
-
-                        {/* Twitter Download Dropdown */}
-                        {activeTab === "twitter" && showDownloadMenu && (
-                          <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-                            <div className="py-2">
-                              <button
-                                onClick={handleTwitterCopyAsText}
-                                className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center space-x-2"
-                              >
-                                <FileText className="h-4 w-4" />
-                                <span>
-                                  {copySuccess ? "Copied!" : "Copy as Text"}
-                                </span>
-                              </button>
-                              <button
-                                onClick={handleTwitterExportAsText}
-                                className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center space-x-2"
-                              >
-                                <Download className="h-4 w-4" />
-                                <span>Download as Text</span>
-                              </button>
-                              <button
-                                onClick={handleTwitterExportAsCSV}
-                                className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center space-x-2"
-                              >
-                                <Table className="h-4 w-4" />
-                                <span>Download as CSV</span>
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex-1 overflow-y-auto p-6">
-                  {currentItem && (
-                    <div className="h-full">
-                      {activeTab === "twitter" && (
-                        <TwitterThreads
-                          ref={twitterThreadsRef}
-                          initialContent={currentItem.content}
-                        />
-                      )}
-                    </div>
-                  )}
-                </div>
-              </>
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center">
-                  <div className="text-gray-400 mb-2">✨</div>
-                  <p className="text-gray-500">
-                    Select a content type to view generated content
-                  </p>
-                </div>
+          {/* Content Body */}
+          <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
+            {selectedIndustry === "marketing" && <MarketingSocialMedia />}
+            {selectedIndustry === "blogging" && <BloggingJournalism />}
+            {selectedIndustry === "email" && (
+              <div className="text-center py-12">
+                <Mail className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Email Marketing Content
+                </h3>
+                <p className="text-gray-600">
+                  Coming soon - Newsletter and email campaign generation
+                </p>
+              </div>
+            )}
+            {selectedIndustry === "corporate" && (
+              <div className="text-center py-12">
+                <Building className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Corporate Content
+                </h3>
+                <p className="text-gray-600">
+                  Coming soon - Meeting minutes and business reports
+                </p>
+              </div>
+            )}
+            {selectedIndustry === "education" && (
+              <div className="text-center py-12">
+                <GraduationCap className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Educational Content
+                </h3>
+                <p className="text-gray-600">
+                  Coming soon - Lecture notes and study materials
+                </p>
+              </div>
+            )}
+            {selectedIndustry === "media" && (
+              <div className="text-center py-12">
+                <PlayCircle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Media Content
+                </h3>
+                <p className="text-gray-600">
+                  Coming soon - Show notes and media production tools
+                </p>
               </div>
             )}
           </div>

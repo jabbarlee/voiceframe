@@ -27,6 +27,9 @@ export interface TwitterThreadsRef {
   exportAsText: () => void;
   copyAsText: () => Promise<void>;
   exportAsCSV: () => void;
+  addQuestion: () => void;
+  addHashtags: () => void;
+  addCTA: () => void;
 }
 
 export const TwitterThreads = forwardRef<
@@ -178,11 +181,37 @@ export const TwitterThreads = forwardRef<
     URL.revokeObjectURL(url);
   };
 
+  // Enhancement functions
+  const addQuestion = () => {
+    const lastTweet = tweets[tweets.length - 1];
+    if (lastTweet) {
+      updateTweet(lastTweet.id, lastTweet.content + "\n\nWhat are your thoughts? 🤔");
+    }
+  };
+
+  const addHashtags = () => {
+    const lastTweet = tweets[tweets.length - 1];
+    if (lastTweet) {
+      const hashtags = suggestHashtags(lastTweet.content);
+      updateTweet(lastTweet.id, `${lastTweet.content} ${hashtags.join(" ")}`);
+    }
+  };
+
+  const addCTA = () => {
+    const lastTweet = tweets[tweets.length - 1];
+    if (lastTweet) {
+      updateTweet(lastTweet.id, lastTweet.content + "\n\n👉 Follow for more insights like this!");
+    }
+  };
+
   // Expose functions to parent component
   useImperativeHandle(ref, () => ({
     exportAsText,
     copyAsText,
     exportAsCSV,
+    addQuestion,
+    addHashtags,
+    addCTA,
   }));
 
   const TweetCard = ({ tweet, index }: { tweet: Tweet; index: number }) => {
@@ -250,32 +279,6 @@ export const TwitterThreads = forwardRef<
                     }`}
                   >
                     {tweet.characterCount}/{characterLimit}
-                  </div>
-
-                  {/* Suggestion Buttons */}
-                  <div className="flex space-x-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        const hashtags = suggestHashtags(tweet.content);
-                        updateTweet(
-                          tweet.id,
-                          `${tweet.content} ${hashtags.join(" ")}`
-                        );
-                      }}
-                    >
-                      Add #
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        updateTweet(tweet.id, `${tweet.content} 🚀✨`)
-                      }
-                    >
-                      Add Emoji
-                    </Button>
                   </div>
                 </div>
 
@@ -368,13 +371,10 @@ export const TwitterThreads = forwardRef<
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
-      {/* Thread Tweets */}
-      <div className="space-y-4">
-        {tweets.map((tweet, index) => (
-          <TweetCard key={tweet.id} tweet={tweet} index={index} />
-        ))}
-      </div>
+    <div className="space-y-4">
+      {tweets.map((tweet, index) => (
+        <TweetCard key={tweet.id} tweet={tweet} index={index} />
+      ))}
     </div>
   );
 });
