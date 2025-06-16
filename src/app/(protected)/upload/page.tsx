@@ -11,12 +11,12 @@ import {
   X,
   CheckCircle,
   AlertCircle,
-  Cloud,
   Mic,
-  Clock,
-  FileText,
   Loader2,
-  Play,
+  ArrowRight,
+  File,
+  Cloud,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -27,7 +27,7 @@ interface UploadedFile {
   progress: number;
   error?: string;
   uploadedData?: {
-    id: string; // This will be the actual database UUID
+    id: string;
     filename: string;
     path: string;
     size: number;
@@ -40,12 +40,11 @@ export default function UploadPage() {
   const { user } = useAuth();
   const router = useRouter();
   const [isDragOver, setIsDragOver] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    setTitle("Upload");
+    setTitle("Upload Audio");
   }, [setTitle]);
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -73,54 +72,81 @@ export default function UploadPage() {
     }
   };
 
-  const handleFiles = (files: File[]) => {
-    const audioFiles = files.filter(
-      (file) =>
-        file.type.startsWith("audio/") ||
-        file.name.toLowerCase().endsWith(".mp3") ||
-        file.name.toLowerCase().endsWith(".wav") ||
-        file.name.toLowerCase().endsWith(".m4a") ||
-        file.name.toLowerCase().endsWith(".ogg")
-    );
+  const handleFiles = async (files: File[]) => {
+    if (files.length === 0) return;
 
-    const newFiles: UploadedFile[] = audioFiles.map((file) => ({
+    // Take only the first file
+    const file = files[0];
+
+    const isAudioFile =
+      file.type.startsWith("audio/") ||
+      file.name.toLowerCase().endsWith(".mp3") ||
+      file.name.toLowerCase().endsWith(".wav") ||
+      file.name.toLowerCase().endsWith(".m4a") ||
+      file.name.toLowerCase().endsWith(".ogg");
+
+    if (!isAudioFile) {
+      setError("Please select a valid audio file (MP3, WAV, M4A, OGG)");
+      return;
+    }
+
+    // Clear any previous uploads
+    setUploadedFile(null);
+    setError("");
+
+    const newFile: UploadedFile = {
       id: Math.random().toString(36).substr(2, 9),
       file,
       status: "pending",
       progress: 0,
-    }));
+    };
 
-    setUploadedFiles((prev) => [...prev, ...newFiles]);
-  };
+    setUploadedFile(newFile);
 
-  const removeFile = (id: string) => {
-    setUploadedFiles((prev) => prev.filter((file) => file.id !== id));
+    // Automatically start uploading the file
+    await uploadFile(newFile.id);
   };
 
   const uploadFile = async (fileId: string) => {
-    const fileToUpload = uploadedFiles.find((f) => f.id === fileId);
-    if (!fileToUpload) return;
+    if (!user) {
+      setError("Please sign in to upload files");
+      return;
+    }
 
-    try {
+    // Find the file to upload in the current state
+    setUploadedFile((prev) => {
+      if (!prev || prev.id !== fileId) {
+        console.error("File not found for upload");
+        return prev;
+      }
+
+      const fileToUpload = prev;
+      console.log("🚀 Starting upload for file:", fileToUpload.file.name);
+
+      // Start the upload process
+      performUpload(fileToUpload);
+
       // Update status to uploading
-      setUploadedFiles((prev) =>
-        prev.map((file) =>
-          file.id === fileId
-            ? { ...file, status: "uploading", progress: 0 }
-            : file
-        )
-      );
+      return { ...prev, status: "uploading", progress: 0 };
+    });
+  };
 
+  const performUpload = async (fileToUpload: UploadedFile) => {
+    try {
       // Get user token
       const idToken = await getCurrentUserToken();
       if (!idToken) {
         throw new Error("Authentication required");
       }
 
+      console.log("🔑 Got user token, creating form data");
+
       // Create form data
       const formData = new FormData();
       formData.append("file", fileToUpload.file);
       formData.append("idToken", idToken);
+
+      console.log("📤 Sending upload request to /api/upload");
 
       // Upload with progress tracking
       const xhr = new XMLHttpRequest();
@@ -129,88 +155,78 @@ export default function UploadPage() {
         xhr.upload.addEventListener("progress", (event) => {
           if (event.lengthComputable) {
             const progress = Math.round((event.loaded / event.total) * 100);
-            setUploadedFiles((prev) =>
-              prev.map((file) =>
-                file.id === fileId ? { ...file, progress } : file
-              )
-            );
+            console.log(`📊 Upload progress: ${progress}%`);
+            setUploadedFile((prev) => (prev ? { ...prev, progress } : null));
           }
         });
 
         xhr.addEventListener("load", () => {
+          console.log(`📥 Upload response received. Status: ${xhr.status}`);
+
           if (xhr.status === 200) {
             try {
               const response = JSON.parse(xhr.responseText);
-              if (response.success) {
-                setUploadedFiles((prev) =>
-                  prev.map((file) =>
-                    file.id === fileId
-                      ? {
-                          ...file,
-                          status: "completed",
-                          progress: 100,
-                          uploadedData: response.data,
-                        }
-                      : file
-                  )
+              console.log("📋 Upload response:", response);
+
+              if (response.success && response.data) {
+                console.log("✅ Upload successful. File ID:", response.data.id);
+                setUploadedFile((prev) =>
+                  prev
+                    ? {
+                        ...prev,
+                        status: "completed",
+                        progress: 100,
+                        uploadedData: response.data,
+                      }
+                    : null
                 );
                 resolve();
               } else {
+                console.error("❌ Upload failed:", response.error);
                 throw new Error(response.error || "Upload failed");
               }
-            } catch (error) {
+            } catch (parseError) {
+              console.error("❌ Failed to parse response:", parseError);
               reject(new Error("Invalid response from server"));
             }
           } else {
+            console.error(`❌ Upload failed with status: ${xhr.status}`);
+            console.error("Response text:", xhr.responseText);
             reject(new Error(`Upload failed with status: ${xhr.status}`));
           }
         });
 
         xhr.addEventListener("error", () => {
+          console.error("❌ Network error during upload");
           reject(new Error("Network error during upload"));
         });
 
+        xhr.addEventListener("timeout", () => {
+          console.error("❌ Upload timeout");
+          reject(new Error("Upload timeout"));
+        });
+
         xhr.open("POST", "/api/upload");
+        xhr.timeout = 5 * 60 * 1000; // 5 minutes timeout
         xhr.send(formData);
       });
     } catch (error: any) {
       console.error("❌ Upload error:", error);
-      setUploadedFiles((prev) =>
-        prev.map((file) =>
-          file.id === fileId
-            ? {
-                ...file,
-                status: "error",
-                error: error.message || "Upload failed",
-              }
-            : file
-        )
+      setUploadedFile((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: "error",
+              error: error.message || "Upload failed",
+            }
+          : null
       );
     }
   };
 
-  const startUploads = async () => {
-    if (!user) {
-      setError("Please sign in to upload files");
-      return;
-    }
-
-    setIsUploading(true);
-    const pendingFiles = uploadedFiles.filter(
-      (file) => file.status === "pending"
-    );
-
-    // Upload files sequentially
-    for (const file of pendingFiles) {
-      try {
-        await uploadFile(file.id);
-      } catch (error) {
-        console.error("Upload failed for file:", file.file.name, error);
-        // Continue with next file even if one fails
-      }
-    }
-
-    setIsUploading(false);
+  const removeFile = () => {
+    setUploadedFile(null);
+    setError("");
   };
 
   const formatFileSize = (bytes: number) => {
@@ -224,273 +240,317 @@ export default function UploadPage() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "completed":
-        return <CheckCircle className="h-5 w-5 text-green-500" />;
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
       case "uploading":
-        return <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />;
+        return <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />;
       case "error":
-        return <AlertCircle className="h-5 w-5 text-red-500" />;
+        return <AlertCircle className="h-4 w-4 text-red-500" />;
       default:
-        return <Clock className="h-5 w-5 text-gray-400" />;
+        return <File className="h-4 w-4 text-gray-400" />;
     }
   };
 
-  const startTranscription = (audioFileId: string) => {
+  const handleNextStep = (audioFileId: string) => {
+    console.log("🎯 Navigating to transcript page for file:", audioFileId);
     router.push(`/dashboard/audio/${audioFileId}`);
   };
 
   return (
-    <div className="h-full flex flex-col p-6">
-      {/* Error Banner */}
-      {error && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <div className="flex items-center">
-            <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
-            <p className="text-sm text-red-600">{error}</p>
-            <button
-              onClick={() => setError("")}
-              className="ml-auto text-red-500 hover:text-red-700"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      )}
-
+    <div className="h-screen bg-gray-50 flex flex-col">
       {/* Header Section */}
-      <div className="flex-shrink-0">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Upload Audio Files
-            </h1>
-            <p className="text-gray-600 mt-1">
-              Upload your audio files to start transcription
-            </p>
-          </div>
-          <div className="flex items-center space-x-4 text-sm text-gray-500">
-            <div className="flex items-center space-x-1">
-              <Cloud className="h-4 w-4" />
-              <span>Cloud Storage</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <FileAudio className="h-4 w-4" />
-              <span>Audio Files Only</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Upload Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-blue-50 rounded-lg">
-                <Upload className="h-5 w-5 text-blue-600" />
-              </div>
+      <div className="bg-white border-b border-gray-200 flex-shrink-0">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="py-6">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Files</p>
-                <p className="text-xl font-bold text-gray-900">
-                  {uploadedFiles.length}
+                <h1 className="text-2xl font-bold text-gray-900">
+                  Upload Audio
+                </h1>
+                <p className="mt-1 text-gray-600">
+                  Upload your audio files to start creating AI-powered content
                 </p>
               </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-green-50 rounded-lg">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-600">Completed</p>
-                <p className="text-xl font-bold text-gray-900">
-                  {uploadedFiles.filter((f) => f.status === "completed").length}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-orange-50 rounded-lg">
-                <Clock className="h-5 w-5 text-orange-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-600">Processing</p>
-                <p className="text-xl font-bold text-gray-900">
-                  {uploadedFiles.filter((f) => f.status === "uploading").length}
-                </p>
+              <div className="flex items-center space-x-6">
+                <div className="flex items-center space-x-2 text-sm text-gray-500">
+                  <Cloud className="h-4 w-4" />
+                  <span>Secure Storage</span>
+                </div>
+                <div className="flex items-center space-x-2 text-sm text-gray-500">
+                  <Zap className="h-4 w-4" />
+                  <span>AI Processing</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Content - Flexible */}
-      <div className="flex-1 flex flex-col lg:flex-row gap-6 overflow-hidden">
-        {/* Upload Area - Left Side */}
-        <div className="flex-1">
-          <div
-            className={`h-full border-2 border-dashed rounded-xl p-6 text-center transition-all duration-200 flex items-center justify-center ${
-              isDragOver
-                ? "border-emerald-400 bg-emerald-50"
-                : "border-gray-300 hover:border-emerald-300 hover:bg-emerald-50/50"
-            }`}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-          >
-            <div className="flex flex-col items-center justify-center">
-              <div className="mb-6">
-                <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4 mx-auto">
-                  <Upload className="h-8 w-8 text-emerald-600" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  Drop audio files here
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  or click to browse your computer
-                </p>
-              </div>
-
-              <input
-                type="file"
-                multiple
-                accept="audio/*,.mp3,.wav,.m4a,.ogg"
-                onChange={handleFileSelect}
-                className="hidden"
-                id="file-upload"
-              />
-              <label
-                htmlFor="file-upload"
-                className="cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-lg font-medium transition-colors inline-flex items-center space-x-2"
+      {/* Error Banner */}
+      {error && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 flex-shrink-0">
+          <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
+            <div className="flex items-center">
+              <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
+              <p className="text-sm text-red-600">{error}</p>
+              <button
+                onClick={() => setError("")}
+                className="ml-auto text-red-500 hover:text-red-700"
               >
-                <FileAudio className="h-5 w-5" />
-                <span>Select Audio Files</span>
-              </label>
-
-              <div className="mt-6 text-sm text-gray-500">
-                <p>Supported formats: MP3, WAV, M4A, OGG</p>
-                <p>Maximum file size: 100MB per file</p>
-              </div>
+                <X className="h-4 w-4" />
+              </button>
             </div>
           </div>
         </div>
+      )}
 
-        {/* File List - Right Side */}
-        <div className="flex-1">
-          <div className="bg-white rounded-xl border border-gray-200 h-full flex flex-col">
-            <div className="p-4 border-b border-gray-200 flex-shrink-0">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Uploaded Files
-                </h3>
-                {uploadedFiles.length > 0 && (
-                  <Button
-                    onClick={startUploads}
-                    disabled={
-                      isUploading ||
-                      !user ||
-                      uploadedFiles.every((f) => f.status !== "pending")
-                    }
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                  >
-                    {isUploading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Uploading...
-                      </>
-                    ) : (
-                      <>
-                        <Cloud className="h-4 w-4 mr-2" />
-                        Upload to Cloud
-                      </>
-                    )}
-                  </Button>
-                )}
-              </div>
-            </div>
+      {/* Main Content */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-full">
+            {/* Upload Area - Left Side */}
+            <div className="lg:col-span-2">
+              {!uploadedFile ? (
+                <div
+                  className={`h-full min-h-[500px] border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-200 flex items-center justify-center ${
+                    isDragOver
+                      ? "border-emerald-400 bg-emerald-50"
+                      : "border-gray-300 hover:border-emerald-300 hover:bg-emerald-50/50 bg-white"
+                  }`}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                >
+                  <div className="flex flex-col items-center justify-center max-w-md mx-auto">
+                    <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mb-6">
+                      <Upload className="h-12 w-12 text-emerald-600" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-3">
+                      Drop your audio file here
+                    </h2>
+                    <p className="text-gray-600 mb-8 text-lg">
+                      Upload your audio file and let our AI transform it into
+                      professional content
+                    </p>
 
-            <div className="flex-1 overflow-y-auto p-4">
-              {uploadedFiles.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-gray-500">
-                  <Mic className="h-12 w-12 mb-4 text-gray-300" />
-                  <p className="text-lg font-medium">No files uploaded yet</p>
-                  <p className="text-sm">Upload audio files to get started</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {uploadedFiles.map((uploadedFile) => (
-                    <div
-                      key={uploadedFile.id}
-                      className="bg-gray-50 rounded-lg p-4 border border-gray-200"
+                    <input
+                      type="file"
+                      accept="audio/*,.mp3,.wav,.m4a,.ogg"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                      id="file-upload"
+                    />
+                    <label
+                      htmlFor="file-upload"
+                      className="cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-xl font-semibold transition-colors inline-flex items-center space-x-3 text-lg"
                     >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center space-x-3 flex-1 min-w-0">
-                          <div className="flex-shrink-0">
-                            {getStatusIcon(uploadedFile.status)}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">
-                              {uploadedFile.file.name}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {formatFileSize(uploadedFile.file.size)}
-                              {uploadedFile.status === "completed" &&
-                                " • Uploaded to cloud"}
-                            </p>
-                          </div>
+                      <FileAudio className="h-6 w-6" />
+                      <span>Choose Audio File</span>
+                    </label>
+
+                    <div className="mt-8 text-gray-500">
+                      <div className="flex items-center justify-center space-x-6 text-sm">
+                        <div className="flex items-center space-x-2">
+                          <FileAudio className="h-4 w-4" />
+                          <span>MP3, WAV, M4A, OGG</span>
                         </div>
                         <div className="flex items-center space-x-2">
-                          {uploadedFile.status === "completed" &&
-                            uploadedFile.uploadedData && (
-                              <Button
-                                onClick={() =>
-                                  startTranscription(
-                                    uploadedFile.uploadedData!.id
-                                  )
-                                }
-                                size="sm"
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                              >
-                                <Play className="h-3 w-3 mr-1" />
-                                Start transcribing
-                              </Button>
-                            )}
-                          <button
-                            onClick={() => removeFile(uploadedFile.id)}
-                            className="flex-shrink-0 text-gray-400 hover:text-red-500 transition-colors"
-                            disabled={uploadedFile.status === "uploading"}
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
+                          <Cloud className="h-4 w-4" />
+                          <span>Max 100MB</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="h-full min-h-[500px] flex items-center justify-center">
+                  <div className="bg-white rounded-2xl border border-gray-200 p-8 w-full max-w-2xl">
+                    <h2 className="text-xl font-bold text-gray-900 mb-6 text-center">
+                      {uploadedFile.status === "completed"
+                        ? "Upload Complete!"
+                        : "Processing Your File"}
+                    </h2>
+                    <div
+                      className={`flex items-center space-x-6 px-6 py-5 rounded-xl border transition-all duration-200 ${
+                        uploadedFile.status === "completed"
+                          ? "bg-green-50 border-green-200"
+                          : uploadedFile.status === "uploading"
+                          ? "bg-blue-50 border-blue-200"
+                          : uploadedFile.status === "error"
+                          ? "bg-red-50 border-red-200"
+                          : "bg-gray-50 border-gray-200"
+                      }`}
+                    >
+                      <div className="flex items-center space-x-4 flex-1">
+                        {getStatusIcon(uploadedFile.status)}
+                        <div className="flex flex-col flex-1">
+                          <span className="text-base font-semibold text-gray-900">
+                            {uploadedFile.file.name}
+                          </span>
+                          <span className="text-sm text-gray-500">
+                            {formatFileSize(uploadedFile.file.size)}
+                            {uploadedFile.status === "completed" &&
+                              " • Uploaded successfully"}
+                          </span>
                         </div>
                       </div>
 
                       {uploadedFile.status === "uploading" && (
-                        <div className="mt-2">
-                          <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
-                            <span>Uploading to cloud...</span>
-                            <span>{uploadedFile.progress}%</span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div className="flex items-center space-x-4">
+                          <div className="w-24 bg-gray-200 rounded-full h-2">
                             <div
-                              className="bg-emerald-600 h-2 rounded-full transition-all duration-300"
+                              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                               style={{ width: `${uploadedFile.progress}%` }}
                             ></div>
                           </div>
+                          <span className="text-blue-600 font-semibold text-sm">
+                            {uploadedFile.progress}%
+                          </span>
                         </div>
                       )}
 
-                      {uploadedFile.status === "error" &&
-                        uploadedFile.error && (
-                          <div className="mt-2 p-2 bg-red-50 rounded text-xs text-red-600">
-                            Error: {uploadedFile.error}
-                          </div>
+                      {uploadedFile.status === "completed" &&
+                        uploadedFile.uploadedData && (
+                          <Button
+                            onClick={() =>
+                              handleNextStep(uploadedFile.uploadedData!.id)
+                            }
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                          >
+                            <span className="mr-2">Get Transcript</span>
+                            <ArrowRight className="h-4 w-4" />
+                          </Button>
                         )}
+
+                      {uploadedFile.status === "error" && (
+                        <span className="text-red-600 font-semibold text-sm">
+                          Upload Failed
+                        </span>
+                      )}
+
+                      <button
+                        onClick={removeFile}
+                        className="text-gray-400 hover:text-red-500 transition-colors"
+                        disabled={uploadedFile.status === "uploading"}
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
                     </div>
-                  ))}
+
+                    {uploadedFile.status === "completed" && (
+                      <div className="mt-4 p-4 bg-green-50 rounded-xl border border-green-200">
+                        <div className="flex items-center space-x-2">
+                          <CheckCircle className="h-5 w-5 text-green-500" />
+                          <p className="text-sm text-green-700 font-medium">
+                            Your file has been uploaded successfully! Click "Get
+                            Transcript" to start processing.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {uploadedFile.error && uploadedFile.status === "error" && (
+                      <div className="mt-4 p-3 bg-red-50 rounded-xl border border-red-200">
+                        <p className="text-sm text-red-600">
+                          <strong>Error:</strong> {uploadedFile.error}
+                        </p>
+                        <p className="text-xs text-red-500 mt-1">
+                          Please try uploading again or contact support if the
+                          problem persists.
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
+            </div>
+
+            {/* Features Section - Right Side Cards */}
+            <div className="lg:col-span-1">
+              <div className="space-y-4">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">
+                  What happens next?
+                </h3>
+
+                <div className="bg-white rounded-xl border border-gray-200 p-6">
+                  <div className="flex items-start space-x-4">
+                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <FileAudio className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900 mb-2">
+                        Audio Analysis
+                      </h4>
+                      <p className="text-sm text-gray-600">
+                        We analyze your audio file and extract key insights,
+                        themes, and important content automatically.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-xl border border-gray-200 p-6">
+                  <div className="flex items-start space-x-4">
+                    <div className="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Zap className="h-6 w-6 text-emerald-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900 mb-2">
+                        AI Processing
+                      </h4>
+                      <p className="text-sm text-gray-600">
+                        Our AI transforms your content into multiple
+                        professional formats including social posts, blogs, and
+                        more.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-xl border border-gray-200 p-6">
+                  <div className="flex items-start space-x-4">
+                    <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <CheckCircle className="h-6 w-6 text-purple-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900 mb-2">
+                        Ready to Use
+                      </h4>
+                      <p className="text-sm text-gray-600">
+                        Get polished, professional content ready for social
+                        media, blogs, newsletters, and more platforms.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Supported Formats Card */}
+                <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl border border-emerald-200 p-6">
+                  <h4 className="font-semibold text-emerald-900 mb-3">
+                    Supported Formats
+                  </h4>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="flex items-center space-x-2 text-emerald-700">
+                      <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
+                      <span>MP3</span>
+                    </div>
+                    <div className="flex items-center space-x-2 text-emerald-700">
+                      <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
+                      <span>WAV</span>
+                    </div>
+                    <div className="flex items-center space-x-2 text-emerald-700">
+                      <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
+                      <span>M4A</span>
+                    </div>
+                    <div className="flex items-center space-x-2 text-emerald-700">
+                      <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
+                      <span>OGG</span>
+                    </div>
+                  </div>
+                  <div className="mt-3 text-xs text-emerald-600">
+                    Maximum file size: 100MB
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
