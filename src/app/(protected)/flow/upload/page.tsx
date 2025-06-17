@@ -76,6 +76,115 @@ export default function FlowUploadPage() {
     setError("");
   };
 
+  const handleUpload = async () => {
+    if (!selectedFile || !user) return;
+
+    setIsUploading(true);
+    setError("");
+    setUploadProgress({ loaded: 0, total: selectedFile.size, percentage: 0 });
+
+    try {
+      // Get the user's ID token for authentication
+      const idToken = await getCurrentUserToken();
+      if (!idToken) {
+        throw new Error("Authentication required. Please sign in again.");
+      }
+
+      console.log("🔑 Got user token, creating form data", idToken);
+
+      // Create form data - only include the file, token goes in header
+      const formData = new FormData();
+      formData.append("audio", selectedFile);
+
+      console.log("📤 Sending upload request to /api/audio/upload");
+      console.log("File details:", {
+        name: selectedFile.name,
+        type: selectedFile.type,
+        size: selectedFile.size,
+      });
+
+      // Upload with progress tracking using XMLHttpRequest
+      const xhr = new XMLHttpRequest();
+
+      return new Promise<void>((resolve, reject) => {
+        xhr.upload.addEventListener("progress", (event) => {
+          if (event.lengthComputable) {
+            const percentage = Math.round((event.loaded / event.total) * 100);
+            console.log(`📊 Upload progress: ${percentage}%`);
+            setUploadProgress({
+              loaded: event.loaded,
+              total: event.total,
+              percentage,
+            });
+          }
+        });
+
+        xhr.addEventListener("load", () => {
+          console.log(`📥 Upload response received. Status: ${xhr.status}`);
+
+          if (xhr.status === 200) {
+            try {
+              const response = JSON.parse(xhr.responseText);
+              console.log("📋 Upload response:", response);
+
+              if (response.success && response.data) {
+                console.log("✅ Upload successful. File ID:", response.data.id);
+                // Upload successful - redirect to analyze page
+                router.push(`/flow/analyze/${response.data.id}`);
+                resolve();
+              } else {
+                console.error("❌ Upload failed:", response.error);
+                throw new Error(response.error || "Upload failed");
+              }
+            } catch (parseError) {
+              console.error("❌ Failed to parse response:", parseError);
+              reject(new Error("Invalid response from server"));
+            }
+          } else {
+            console.error(`❌ Upload failed with status: ${xhr.status}`);
+            console.error("Response text:", xhr.responseText);
+            try {
+              const errorResponse = JSON.parse(xhr.responseText);
+              reject(
+                new Error(
+                  errorResponse.error ||
+                    `Upload failed with status: ${xhr.status}`
+                )
+              );
+            } catch {
+              reject(new Error(`Upload failed with status: ${xhr.status}`));
+            }
+          }
+        });
+
+        xhr.addEventListener("error", () => {
+          console.error("❌ Network error during upload");
+          reject(new Error("Network error during upload"));
+        });
+
+        xhr.addEventListener("timeout", () => {
+          console.error("❌ Upload timeout");
+          reject(new Error("Upload timeout"));
+        });
+
+        xhr.open("POST", "/api/audio/upload");
+        xhr.setRequestHeader("Authorization", `Bearer ${idToken}`);
+        xhr.timeout = 5 * 60 * 1000; // 5 minutes timeout
+        xhr.send(formData);
+      });
+    } catch (error: any) {
+      console.error("❌ Upload error:", error);
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Upload failed. Please try again."
+      );
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(null);
+    }
+  };
+
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -100,16 +209,19 @@ export default function FlowUploadPage() {
     setDragActive(false);
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setDragActive(false);
 
-    const files = e.dataTransfer.files;
-    if (files && files[0]) {
-      handleFileSelect(files[0]);
-    }
-  }, []);
+      const files = e.dataTransfer.files;
+      if (files && files[0]) {
+        handleFileSelect(files[0]);
+      }
+    },
+    [handleFileSelect]
+  );
 
   const formatFileSize = (bytes: number) => {
     const sizes = ["Bytes", "KB", "MB", "GB"];
@@ -206,6 +318,7 @@ export default function FlowUploadPage() {
           <div className="w-[140px] flex justify-end">
             {selectedFile && (
               <Button
+                onClick={handleUpload}
                 disabled={isUploading}
                 size="lg"
                 className="bg-emerald-600 hover:bg-emerald-700 flex items-center space-x-2"
