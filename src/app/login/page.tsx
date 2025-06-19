@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Mail, Lock, Eye, EyeOff } from "lucide-react";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { signIn } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 
@@ -13,54 +13,57 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const router = useRouter();
 
-  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError("");
+  const handleLogin = useCallback(
+    async (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      setIsLoading(true);
+      setError("");
 
-    const formData = new FormData(e.currentTarget);
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
+      const formData = new FormData(e.currentTarget);
+      const email = formData.get("email") as string;
+      const password = formData.get("password") as string;
 
-    if (!email || !password) {
-      setError("Please fill in all fields");
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      // Sign in with Firebase
-      const { idToken } = await signIn(email, password);
-      // Create session using API route
-      const response = await fetch("/api/auth/session", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ idToken }),
-        credentials: "include", // Important for cookies
-      });
-
-      const responseData = await response.json();
-      console.log("📋 API Response:", responseData);
-
-      if (!response.ok || !responseData.success) {
-        throw new Error(responseData.error || "Failed to create session");
+      if (!email || !password) {
+        setError("Please fill in all fields");
+        setIsLoading(false);
+        return;
       }
 
-      console.log("✅ Session created successfully");
+      try {
+        // Sign in with Firebase
+        const { idToken } = await signIn(email, password);
+        // Create session using API route
+        const response = await fetch("/api/auth/session", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ idToken }),
+          credentials: "include", // Important for cookies
+        });
 
-      // Small delay to ensure cookie is set before redirect
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+        const responseData = await response.json();
+        console.log("📋 API Response:", responseData);
 
-      router.push("/dashboard");
-    } catch (error: any) {
-      console.error("❌ Login error:", error);
-      setError(error.message || "An error occurred during login");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        if (!response.ok || !responseData.success) {
+          throw new Error(responseData.error || "Failed to create session");
+        }
+
+        console.log("✅ Session created successfully");
+
+        // Small delay to ensure cookie is set before redirect
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        router.push("/dashboard");
+      } catch (error: any) {
+        console.error("❌ Login error:", error);
+        setError(error.message || "An error occurred during login");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [router]
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-emerald-50/30 to-emerald-100/20 flex flex-col">
