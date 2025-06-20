@@ -2,7 +2,7 @@
 
 import { usePageTitle } from "@/components/layout/PageTitleProvider";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -30,8 +30,24 @@ import {
   RefreshCw,
   Award,
   TrendingUp,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import ReactFlow, {
+  MiniMap,
+  Controls,
+  Background,
+  useNodesState,
+  useEdgesState,
+  addEdge,
+  Node,
+  Edge,
+  Position,
+  MarkerType,
+} from "reactflow";
+import "reactflow/dist/style.css";
 
 // Add type definitions
 type SummaryTone = "professional" | "friendly" | "eli5";
@@ -318,6 +334,168 @@ export default function ContentGenerationPage() {
   const [showAnswer, setShowAnswer] = useState(false);
   const [expandedNodes, setExpandedNodes] = useState(new Set(["root"]));
 
+  // Mind Map specific state and logic
+  const initialNodes: Node[] = useMemo(() => {
+    const nodes: Node[] = [];
+
+    // Root node
+    nodes.push({
+      id: "root",
+      type: "default",
+      position: { x: 400, y: 50 },
+      data: {
+        label: "Machine Learning",
+        category: "root",
+      },
+      style: {
+        background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
+        color: "white",
+        border: "none",
+        width: 200,
+        height: 80,
+        fontSize: "16px",
+        fontWeight: "bold",
+        borderRadius: "12px",
+        boxShadow: "0 10px 25px rgba(249, 115, 22, 0.3)",
+      },
+      sourcePosition: Position.Bottom,
+      targetPosition: Position.Top,
+    });
+
+    // Level 1 nodes
+    const level1Positions = [
+      { x: 100, y: 200 },
+      { x: 400, y: 200 },
+      { x: 700, y: 200 },
+    ];
+
+    const level1Nodes = sampleData.mindMap.nodes.filter((n) => n.level === 1);
+    level1Nodes.forEach((node, index) => {
+      nodes.push({
+        id: node.id,
+        type: "default",
+        position: level1Positions[index],
+        data: {
+          label: node.label,
+          category: "level1",
+        },
+        style: {
+          background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
+          color: "white",
+          border: "none",
+          width: 160,
+          height: 60,
+          fontSize: "14px",
+          fontWeight: "600",
+          borderRadius: "10px",
+          boxShadow: "0 6px 20px rgba(59, 130, 246, 0.3)",
+        },
+        sourcePosition: Position.Bottom,
+        targetPosition: Position.Top,
+      });
+    });
+
+    // Level 2 nodes
+    let level2X = 50;
+    const level2Y = 350;
+    const level2Nodes = sampleData.mindMap.nodes.filter((n) => n.level === 2);
+    level2Nodes.forEach((node) => {
+      nodes.push({
+        id: node.id,
+        type: "default",
+        position: { x: level2X, y: level2Y },
+        data: {
+          label: node.label,
+          description: node.description,
+          category: "level2",
+        },
+        style: {
+          background: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
+          color: "white",
+          border: "none",
+          width: 140,
+          height: 50,
+          fontSize: "12px",
+          fontWeight: "500",
+          borderRadius: "8px",
+          boxShadow: "0 4px 15px rgba(139, 92, 246, 0.3)",
+        },
+        sourcePosition: Position.Bottom,
+        targetPosition: Position.Top,
+      });
+      level2X += 180;
+    });
+
+    // Level 3 nodes
+    let level3X = 50;
+    const level3Y = 470;
+    const level3Nodes = sampleData.mindMap.nodes.filter((n) => n.level === 3);
+    level3Nodes.forEach((node) => {
+      nodes.push({
+        id: node.id,
+        type: "default",
+        position: { x: level3X, y: level3Y },
+        data: {
+          label: node.label,
+          description: node.description,
+          category: "level3",
+        },
+        style: {
+          background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+          color: "white",
+          border: "none",
+          width: 120,
+          height: 40,
+          fontSize: "11px",
+          fontWeight: "500",
+          borderRadius: "6px",
+          boxShadow: "0 3px 10px rgba(16, 185, 129, 0.3)",
+        },
+        sourcePosition: Position.Bottom,
+        targetPosition: Position.Top,
+      });
+      level3X += 140;
+    });
+
+    return nodes;
+  }, []);
+
+  const initialEdges: Edge[] = useMemo(() => {
+    const edges: Edge[] = [];
+
+    sampleData.mindMap.nodes.forEach((node) => {
+      if (node.parent) {
+        edges.push({
+          id: `${node.parent}-${node.id}`,
+          source: node.parent,
+          target: node.id,
+          type: "smoothstep",
+          animated: false,
+          style: {
+            stroke: "#94a3b8",
+            strokeWidth: 2,
+          },
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            width: 20,
+            height: 20,
+            color: "#94a3b8",
+          },
+        });
+      }
+    });
+
+    return edges;
+  }, []);
+
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  const onConnect = useCallback(
+    (params: any) => setEdges((eds) => addEdge(params, eds)),
+    [setEdges]
+  );
+
   useEffect(() => {
     setTitle("Study Materials");
   }, [setTitle]);
@@ -467,24 +645,21 @@ export default function ContentGenerationPage() {
       <div className="flex-1 flex min-h-0 overflow-hidden">
         {/* Sidebar Navigation */}
         <div className="w-80 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col">
-          {/* Audio Info Header */}
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex items-center space-x-3 mb-4">
+          {/* Audio Info Header - Match right side header height exactly */}
+          <div className="px-6 py-4 border-b border-gray-200 flex-shrink-0">
+            <div className="flex items-center space-x-3 h-[104px]">
               <div className="p-2 bg-emerald-100 rounded-lg">
                 <FileAudio className="h-6 w-6 text-emerald-600" />
               </div>
-              <div>
-                <h3 className="font-semibold text-gray-900">Source Audio</h3>
-                <p className="text-sm text-gray-500">Generated content from</p>
-              </div>
-            </div>
-            <div>
-              <h4 className="font-medium text-gray-900 mb-2">
-                {sampleData.audioTitle}
-              </h4>
-              <div className="flex items-center space-x-4 text-sm text-gray-500">
-                <div className="flex items-center space-x-1">
-                  <Clock className="h-4 w-4" />
+              <div className="flex-1 min-w-0">
+                <h3
+                  className="font-semibold text-gray-900 truncate"
+                  title={sampleData.audioTitle}
+                >
+                  {sampleData.audioTitle}
+                </h3>
+                <div className="flex items-center space-x-2 text-sm text-gray-500">
+                  <Clock className="h-4 w-4 flex-shrink-0" />
                   <span>{sampleData.duration}</span>
                 </div>
               </div>
@@ -549,9 +724,9 @@ export default function ContentGenerationPage() {
           {/* Summary Tab */}
           {activeTab === "summary" && (
             <div className="flex-1 flex flex-col h-full">
-              {/* Summary Header */}
+              {/* Summary Header - Ensure consistent height */}
               <div className="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between h-[104px]">
                   <div className="flex items-center space-x-3">
                     <div className="p-2 bg-emerald-100 rounded-lg">
                       <BookOpen className="h-5 w-5 text-emerald-600" />
@@ -723,9 +898,9 @@ export default function ContentGenerationPage() {
           {/* Flashcards Tab */}
           {activeTab === "flashcards" && (
             <div className="flex-1 flex flex-col h-full">
-              {/* Flashcards Header */}
+              {/* Flashcards Header - Ensure consistent height */}
               <div className="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between h-[104px]">
                   <div className="flex items-center space-x-3">
                     <div className="p-2 bg-blue-100 rounded-lg">
                       <Brain className="h-5 w-5 text-blue-600" />
@@ -932,9 +1107,9 @@ export default function ContentGenerationPage() {
           {/* Concepts Tab */}
           {activeTab === "concepts" && (
             <div className="flex-1 flex flex-col h-full">
-              {/* Concepts Header */}
+              {/* Concepts Header - Ensure consistent height */}
               <div className="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between h-[104px]">
                   <div className="flex items-center space-x-3">
                     <div className="p-2 bg-purple-100 rounded-lg">
                       <Target className="h-5 w-5 text-purple-600" />
@@ -1045,145 +1220,105 @@ export default function ContentGenerationPage() {
           {/* Mind Map Tab */}
           {activeTab === "mindmap" && (
             <div className="flex-1 flex flex-col h-full">
-              {/* Mind Map Header */}
+              {/* Mind Map Header - Ensure consistent height */}
               <div className="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-orange-100 rounded-lg">
-                    <GitBranch className="h-5 w-5 text-orange-600" />
+                <div className="flex items-center justify-between h-[104px]">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-orange-100 rounded-lg">
+                      <GitBranch className="h-5 w-5 text-orange-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-semibold text-gray-900">
+                        Interactive Mind Map
+                      </h2>
+                      <p className="text-sm text-gray-500">
+                        Visual knowledge structure with{" "}
+                        {sampleData.mindMap.nodes.length} connected concepts
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h2 className="text-xl font-semibold text-gray-900">
-                      Mind Map
-                    </h2>
-                    <p className="text-sm text-gray-500">
-                      Interactive knowledge structure
-                    </p>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center space-x-2"
+                    >
+                      <Download className="h-4 w-4" />
+                      <span className="hidden sm:inline">Export</span>
+                    </Button>
                   </div>
                 </div>
               </div>
 
               {/* Mind Map Content */}
-              <div className="flex-1 overflow-y-auto p-6 min-h-0">
-                <div className="max-w-4xl mx-auto">
-                  <div className="space-y-4">
-                    {/* Root Node */}
-                    {getNodesByLevel(0).map((node) => (
-                      <div key={node.id} className="space-y-3">
-                        <div className="bg-emerald-600 text-white p-4 rounded-xl shadow-lg">
-                          <div className="flex items-center space-x-3">
-                            <GitBranch className="h-6 w-6" />
-                            <span className="text-lg font-bold">
-                              {node.label}
-                            </span>
-                          </div>
-                        </div>
+              <div className="flex-1 min-h-0 bg-gradient-to-br from-slate-50 to-gray-100">
+                <div className="h-full w-full">
+                  <ReactFlow
+                    nodes={nodes}
+                    edges={edges}
+                    onNodesChange={onNodesChange}
+                    onEdgesChange={onEdgesChange}
+                    onConnect={onConnect}
+                    fitView
+                    attributionPosition="top-right"
+                    className="bg-gradient-to-br from-slate-50 to-gray-100"
+                    defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
+                    minZoom={0.2}
+                    maxZoom={2}
+                    nodesDraggable={true}
+                    nodesConnectable={false}
+                    elementsSelectable={true}
+                  >
+                    <Background color="#e2e8f0" gap={20} size={1} />
+                    <Controls
+                      className="bg-white border border-gray-200 rounded-lg shadow-lg"
+                      showInteractive={false}
+                    />
+                    <MiniMap
+                      className="bg-white border border-gray-200 rounded-lg shadow-lg"
+                      nodeColor={(node) => {
+                        switch (node.data.category) {
+                          case "root":
+                            return "#f97316";
+                          case "level1":
+                            return "#3b82f6";
+                          case "level2":
+                            return "#8b5cf6";
+                          case "level3":
+                            return "#10b981";
+                          default:
+                            return "#6b7280";
+                        }
+                      }}
+                      nodeStrokeWidth={3}
+                      zoomable
+                      pannable
+                    />
+                  </ReactFlow>
+                </div>
 
-                        {/* Level 1 Nodes */}
-                        <div className="ml-8 space-y-3">
-                          {getChildNodes(node.id).map((level1Node) => (
-                            <div key={level1Node.id} className="space-y-2">
-                              <div
-                                className="bg-white border-2 border-blue-200 p-4 rounded-xl cursor-pointer hover:bg-blue-50 transition-colors shadow-sm"
-                                onClick={() => toggleNode(level1Node.id)}
-                              >
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center space-x-3">
-                                    <div className="p-2 bg-blue-100 rounded-lg">
-                                      <GitBranch className="h-5 w-5 text-blue-600" />
-                                    </div>
-                                    <span className="font-semibold text-blue-900">
-                                      {level1Node.label}
-                                    </span>
-                                  </div>
-                                  {level1Node.children &&
-                                    (expandedNodes.has(level1Node.id) ? (
-                                      <ChevronDown className="h-5 w-5 text-blue-600" />
-                                    ) : (
-                                      <ChevronRight className="h-5 w-5 text-blue-600" />
-                                    ))}
-                                </div>
-                                {level1Node.description && (
-                                  <p className="text-blue-700 text-sm mt-2 ml-11">
-                                    {level1Node.description}
-                                  </p>
-                                )}
-                              </div>
-
-                              {/* Level 2 Nodes */}
-                              {expandedNodes.has(level1Node.id) && (
-                                <div className="ml-8 space-y-2">
-                                  {getChildNodes(level1Node.id).map(
-                                    (level2Node) => (
-                                      <div
-                                        key={level2Node.id}
-                                        className="space-y-2"
-                                      >
-                                        <div
-                                          className="bg-white border border-purple-200 p-3 rounded-lg cursor-pointer hover:bg-purple-50 transition-colors"
-                                          onClick={() =>
-                                            toggleNode(level2Node.id)
-                                          }
-                                        >
-                                          <div className="flex items-center justify-between">
-                                            <div className="flex items-center space-x-2">
-                                              <div className="p-1.5 bg-purple-100 rounded">
-                                                <GitBranch className="h-4 w-4 text-purple-600" />
-                                              </div>
-                                              <span className="font-medium text-purple-900">
-                                                {level2Node.label}
-                                              </span>
-                                            </div>
-                                            {level2Node.children &&
-                                              (expandedNodes.has(
-                                                level2Node.id
-                                              ) ? (
-                                                <ChevronDown className="h-4 w-4 text-purple-600" />
-                                              ) : (
-                                                <ChevronRight className="h-4 w-4 text-purple-600" />
-                                              ))}
-                                          </div>
-                                          {level2Node.description && (
-                                            <p className="text-purple-700 text-sm mt-1 ml-7">
-                                              {level2Node.description}
-                                            </p>
-                                          )}
-                                        </div>
-
-                                        {/* Level 3 Nodes */}
-                                        {expandedNodes.has(level2Node.id) && (
-                                          <div className="ml-6 space-y-1">
-                                            {getChildNodes(level2Node.id).map(
-                                              (level3Node) => (
-                                                <div
-                                                  key={level3Node.id}
-                                                  className="bg-gray-50 border border-gray-200 p-2 rounded"
-                                                >
-                                                  <div className="flex items-center space-x-2">
-                                                    <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                                                    <span className="text-gray-900 text-sm">
-                                                      {level3Node.label}
-                                                    </span>
-                                                  </div>
-                                                  {level3Node.description && (
-                                                    <p className="text-gray-600 text-xs mt-1 ml-4">
-                                                      {level3Node.description}
-                                                    </p>
-                                                  )}
-                                                </div>
-                                              )
-                                            )}
-                                          </div>
-                                        )}
-                                      </div>
-                                    )
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
+                {/* Mind Map Legend - Floating */}
+                <div className="absolute bottom-6 left-6 bg-white/90 backdrop-blur-sm rounded-lg p-4 border border-gray-200 shadow-lg">
+                  <h4 className="font-medium text-gray-900 mb-3 text-sm">
+                    Mind Map Legend
+                  </h4>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 bg-gradient-to-r from-orange-500 to-orange-600 rounded"></div>
+                      <span className="text-gray-700">Main Topic</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 bg-gradient-to-r from-blue-500 to-blue-600 rounded"></div>
+                      <span className="text-gray-700">Primary Branch</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 bg-gradient-to-r from-purple-500 to-purple-600 rounded"></div>
+                      <span className="text-gray-700">Sub-topic</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded"></div>
+                      <span className="text-gray-700">Details</span>
+                    </div>
                   </div>
                 </div>
               </div>
