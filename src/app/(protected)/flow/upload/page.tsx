@@ -15,6 +15,8 @@ import {
   ArrowRight,
   ArrowLeft,
   Sparkles,
+  FileText,
+  Mic,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -272,56 +274,66 @@ export default function FlowUploadPage() {
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       {/* Header */}
-      <div className="flex-shrink-0 bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <Button
-            variant="ghost"
-            onClick={() => router.push("/dashboard")}
-            className="flex items-center space-x-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span>Back to Dashboard</span>
-          </Button>
+      <div className="flex-shrink-0 bg-white border-b border-gray-200">
+        <div className="px-6 py-4">
+          <div className="flex items-center justify-between h-10">
+            {/* Left side - Back button */}
+            <Button
+              variant="ghost"
+              onClick={() => router.push("/dashboard")}
+              className="flex items-center space-x-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>Back to Dashboard</span>
+            </Button>
 
-          {/* Progress Steps - Centered */}
-          <div className="flex items-center space-x-2 text-sm text-gray-500">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-emerald-600 text-white rounded-full flex items-center justify-center text-sm font-medium">
-                1
+            {/* Center - Progress Steps */}
+            <div className="flex items-center space-x-8">
+              {/* Step 1 - Current */}
+              <div className="flex items-center space-x-3">
+                <div className="flex items-center justify-center w-8 h-8 bg-emerald-600 rounded-full">
+                  <Upload className="w-5 h-5 text-white" />
+                </div>
+                <div className="text-sm">
+                  <div className="font-medium text-emerald-600">Upload</div>
+                </div>
               </div>
-              <span className="font-medium text-emerald-600">Upload</span>
-            </div>
-            <ArrowRight className="h-4 w-4 mx-3" />
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-medium">
-                2
-              </div>
-              <span>Analyze</span>
-            </div>
-            <ArrowRight className="h-4 w-4 mx-3" />
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-medium">
-                3
-              </div>
-              <span>Confirm</span>
-            </div>
-            <ArrowRight className="h-4 w-4 mx-3" />
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-medium">
-                4
-              </div>
-              <span>Result</span>
-            </div>
-          </div>
 
-          {/* Upload Button - Right Side */}
-          <div className="w-[140px] flex justify-end">
-            {selectedFile && (
+              {/* Connector */}
+              <div className="flex-1 h-px bg-gray-200 min-w-[2.5rem]"></div>
+
+              {/* Step 2 - Pending */}
+              <div className="flex items-center space-x-3">
+                <div className="flex items-center justify-center w-8 h-8 bg-gray-100 border-2 border-gray-300 rounded-full">
+                  <Mic className="w-5 h-5 text-gray-400" />
+                </div>
+                <div className="text-sm">
+                  <div className="font-medium text-gray-400">Analyze</div>
+                </div>
+              </div>
+
+              {/* Connector */}
+              <div className="flex-1 h-px bg-gray-200 min-w-[2.5rem]"></div>
+
+              {/* Step 3 - Pending */}
+              <div className="flex items-center space-x-3">
+                <div className="flex items-center justify-center w-8 h-8 bg-gray-100 border-2 border-gray-300 rounded-full">
+                  <FileText className="w-5 h-5 text-gray-400" />
+                </div>
+                <div className="text-sm">
+                  <div className="font-medium text-gray-400">
+                    Generate Content
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right side - Upload button */}
+            <div className="flex items-center space-x-3">
               <Button
                 onClick={handleUpload}
-                disabled={isUploading}
-                size="lg"
-                className="bg-emerald-600 hover:bg-emerald-700 flex items-center space-x-2"
+                disabled={!selectedFile || isUploading}
+                className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed flex items-center space-x-2"
               >
                 {isUploading ? (
                   <>
@@ -335,7 +347,7 @@ export default function FlowUploadPage() {
                   </>
                 )}
               </Button>
-            )}
+            </div>
           </div>
         </div>
       </div>
