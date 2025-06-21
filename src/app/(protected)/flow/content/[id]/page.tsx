@@ -33,6 +33,7 @@ import {
   ZoomIn,
   ZoomOut,
   Maximize2,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ReactFlow, {
@@ -51,6 +52,7 @@ import "reactflow/dist/style.css";
 
 // Add type definitions
 type SummaryTone = "professional" | "friendly" | "eli5";
+type StudyPackTemplate = "academic" | "modern" | "minimal" | "creative";
 
 // Sample boilerplate data
 const sampleData = {
@@ -318,6 +320,59 @@ const sampleData = {
       },
     ],
   },
+
+  studyPacks: {
+    metadata: {
+      title: "Machine Learning Fundamentals",
+      subtitle: "Complete Study Guide",
+      author: "AI-Generated Content",
+      tags: ["Machine Learning", "AI", "Data Science", "Algorithms"],
+      duration: "45 minutes",
+      level: "Intermediate",
+      generatedAt: "2024-01-15T10:30:00Z",
+    },
+    templates: [
+      {
+        id: "academic",
+        name: "Academic Paper",
+        description: "Clean, scholarly design with proper citations",
+        preview: "/api/placeholder/300/400",
+        color: "blue",
+        features: ["Table of Contents", "References", "Clean Typography"],
+      },
+      {
+        id: "modern",
+        name: "Modern Magazine",
+        description: "Sleek, contemporary layout with visual elements",
+        preview: "/api/placeholder/300/400",
+        color: "purple",
+        features: ["Visual Elements", "Modern Layout", "Color Accents"],
+      },
+      {
+        id: "minimal",
+        name: "Minimal Clean",
+        description: "Simple, distraction-free design for focus",
+        preview: "/api/placeholder/300/400",
+        color: "gray",
+        features: ["Minimal Design", "High Readability", "Clean Spacing"],
+      },
+      {
+        id: "creative",
+        name: "Creative Studio",
+        description: "Vibrant, engaging design with illustrations",
+        preview: "/api/placeholder/300/400",
+        color: "emerald",
+        features: ["Illustrations", "Vibrant Colors", "Engaging Layout"],
+      },
+    ],
+    stats: {
+      totalPages: 12,
+      wordCount: 2847,
+      readingTime: "11 min",
+      concepts: 6,
+      flashcards: 5,
+    },
+  },
 };
 
 export default function ContentGenerationPage() {
@@ -333,6 +388,8 @@ export default function ContentGenerationPage() {
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
   const [expandedNodes, setExpandedNodes] = useState(new Set(["root"]));
+  const [selectedTemplate, setSelectedTemplate] =
+    useState<StudyPackTemplate>("academic");
 
   // Mind Map specific state and logic
   const initialNodes: Node[] = useMemo(() => {
@@ -571,83 +628,24 @@ export default function ContentGenerationPage() {
       description: "Visual knowledge structure",
       color: "orange",
     },
+    {
+      id: "studypack",
+      icon: Award,
+      label: "Study Pack",
+      description: "Complete shareable study package",
+      color: "indigo",
+    },
   ];
 
   return (
     <div className="h-screen flex flex-col bg-gray-50">
-      {/* Header */}
-      <div className="flex-shrink-0 bg-white border-b border-gray-200">
-        <div className="px-6 py-4">
-          <div className="flex items-center justify-between h-10">
-            {/* Left side - Back button */}
-            <Button
-              variant="ghost"
-              onClick={() => router.back()}
-              className="flex items-center space-x-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span>Back</span>
-            </Button>
-
-            {/* Center - Progress Steps */}
-            <div className="flex items-center space-x-8">
-              {/* Step 1 - Completed */}
-              <div className="flex items-center space-x-3">
-                <div className="flex items-center justify-center w-8 h-8 bg-emerald-100 rounded-full">
-                  <CheckCircle className="w-5 h-5 text-emerald-600" />
-                </div>
-                <div className="text-sm">
-                  <div className="font-medium text-emerald-600">Upload</div>
-                </div>
-              </div>
-
-              {/* Connector */}
-              <div className="flex-1 h-px bg-emerald-300 min-w-[2.5rem]"></div>
-
-              {/* Step 2 - Completed */}
-              <div className="flex items-center space-x-3">
-                <div className="flex items-center justify-center w-8 h-8 bg-emerald-100 rounded-full">
-                  <CheckCircle className="w-5 h-5 text-emerald-600" />
-                </div>
-                <div className="text-sm">
-                  <div className="font-medium text-emerald-600">Transcribe</div>
-                </div>
-              </div>
-
-              {/* Connector */}
-              <div className="flex-1 h-px bg-emerald-300 min-w-[2.5rem]"></div>
-
-              {/* Step 3 - Current */}
-              <div className="flex items-center space-x-3">
-                <div className="flex items-center justify-center w-8 h-8 bg-emerald-600 rounded-full">
-                  <Sparkles className="w-5 h-5 text-white" />
-                </div>
-                <div className="text-sm">
-                  <div className="font-medium text-emerald-600">
-                    Generate Content
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Right side - Action buttons */}
-            <div className="flex items-center space-x-3">
-              <Button variant="outline" className="flex items-center space-x-2">
-                <Download className="h-4 w-4" />
-                <span className="hidden sm:inline">Export All</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Main Content */}
       <div className="flex-1 flex min-h-0 overflow-hidden">
         {/* Sidebar Navigation */}
         <div className="w-80 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col">
-          {/* Audio Info Header - Match right side header height exactly */}
-          <div className="px-6 py-4 border-b border-gray-200 flex-shrink-0">
-            <div className="flex items-center space-x-3 h-[104px]">
+          {/* Audio Info Header - Smaller height */}
+          <div className="px-6 py-3 border-b border-gray-200 flex-shrink-0">
+            <div className="flex items-center space-x-3 h-16">
               <div className="p-2 bg-emerald-100 rounded-lg">
                 <FileAudio className="h-6 w-6 text-emerald-600" />
               </div>
@@ -679,20 +677,46 @@ export default function ContentGenerationPage() {
                     onClick={() => setActiveTab(type.id)}
                     className={`w-full text-left p-4 rounded-xl border transition-all duration-200 ${
                       isActive
-                        ? `bg-${type.color}-50 border-${type.color}-200 shadow-sm`
+                        ? type.color === "emerald"
+                          ? "bg-emerald-50 border-emerald-200 shadow-sm"
+                          : type.color === "blue"
+                          ? "bg-blue-50 border-blue-200 shadow-sm"
+                          : type.color === "purple"
+                          ? "bg-purple-50 border-purple-200 shadow-sm"
+                          : type.color === "orange"
+                          ? "bg-orange-50 border-orange-200 shadow-sm"
+                          : "bg-indigo-50 border-indigo-200 shadow-sm"
                         : "bg-gray-50 border-gray-200 hover:bg-gray-100"
                     }`}
                   >
                     <div className="flex items-center space-x-3">
                       <div
                         className={`p-2 rounded-lg ${
-                          isActive ? `bg-${type.color}-100` : "bg-gray-200"
+                          isActive
+                            ? type.color === "emerald"
+                              ? "bg-emerald-100"
+                              : type.color === "blue"
+                              ? "bg-blue-100"
+                              : type.color === "purple"
+                              ? "bg-purple-100"
+                              : type.color === "orange"
+                              ? "bg-orange-100"
+                              : "bg-indigo-100"
+                            : "bg-gray-200"
                         }`}
                       >
                         <Icon
                           className={`h-5 w-5 ${
                             isActive
-                              ? `text-${type.color}-600`
+                              ? type.color === "emerald"
+                                ? "text-emerald-600"
+                                : type.color === "blue"
+                                ? "text-blue-600"
+                                : type.color === "purple"
+                                ? "text-purple-600"
+                                : type.color === "orange"
+                                ? "text-orange-600"
+                                : "text-indigo-600"
                               : "text-gray-600"
                           }`}
                         />
@@ -701,7 +725,15 @@ export default function ContentGenerationPage() {
                         <div
                           className={`font-medium ${
                             isActive
-                              ? `text-${type.color}-900`
+                              ? type.color === "emerald"
+                                ? "text-emerald-900"
+                                : type.color === "blue"
+                                ? "text-blue-900"
+                                : type.color === "purple"
+                                ? "text-purple-900"
+                                : type.color === "orange"
+                                ? "text-orange-900"
+                                : "text-indigo-900"
                               : "text-gray-900"
                           }`}
                         >
@@ -724,9 +756,9 @@ export default function ContentGenerationPage() {
           {/* Summary Tab */}
           {activeTab === "summary" && (
             <div className="flex-1 flex flex-col h-full">
-              {/* Summary Header - Ensure consistent height */}
-              <div className="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
-                <div className="flex items-center justify-between h-[104px]">
+              {/* Summary Header - Smaller consistent height */}
+              <div className="bg-white border-b border-gray-200 px-6 py-3 flex-shrink-0">
+                <div className="flex items-center justify-between h-16">
                   <div className="flex items-center space-x-3">
                     <div className="p-2 bg-emerald-100 rounded-lg">
                       <BookOpen className="h-5 w-5 text-emerald-600" />
@@ -898,9 +930,9 @@ export default function ContentGenerationPage() {
           {/* Flashcards Tab */}
           {activeTab === "flashcards" && (
             <div className="flex-1 flex flex-col h-full">
-              {/* Flashcards Header - Ensure consistent height */}
-              <div className="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
-                <div className="flex items-center justify-between h-[104px]">
+              {/* Flashcards Header - Smaller consistent height */}
+              <div className="bg-white border-b border-gray-200 px-6 py-3 flex-shrink-0">
+                <div className="flex items-center justify-between h-16">
                   <div className="flex items-center space-x-3">
                     <div className="p-2 bg-blue-100 rounded-lg">
                       <Brain className="h-5 w-5 text-blue-600" />
@@ -1107,9 +1139,9 @@ export default function ContentGenerationPage() {
           {/* Concepts Tab */}
           {activeTab === "concepts" && (
             <div className="flex-1 flex flex-col h-full">
-              {/* Concepts Header - Ensure consistent height */}
-              <div className="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
-                <div className="flex items-center justify-between h-[104px]">
+              {/* Concepts Header - Smaller consistent height */}
+              <div className="bg-white border-b border-gray-200 px-6 py-3 flex-shrink-0">
+                <div className="flex items-center justify-between h-16">
                   <div className="flex items-center space-x-3">
                     <div className="p-2 bg-purple-100 rounded-lg">
                       <Target className="h-5 w-5 text-purple-600" />
@@ -1153,11 +1185,6 @@ export default function ContentGenerationPage() {
                             <h3 className="text-xl font-semibold text-gray-900 group-hover:text-purple-900 transition-colors leading-tight">
                               {concept.term}
                             </h3>
-                          </div>
-                          <div className="ml-4 flex-shrink-0">
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
-                              {concept.category}
-                            </span>
                           </div>
                         </div>
 
@@ -1217,12 +1244,367 @@ export default function ContentGenerationPage() {
             </div>
           )}
 
+          {/* Study Pack Tab */}
+          {activeTab === "studypack" && (
+            <div className="flex-1 flex flex-col h-full">
+              {/* Study Pack Header - Smaller consistent height */}
+              <div className="bg-white border-b border-gray-200 px-6 py-3 flex-shrink-0">
+                <div className="flex items-center justify-between h-16">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-indigo-100 rounded-lg">
+                      <Award className="h-5 w-5 text-indigo-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-semibold text-gray-900">
+                        Study Pack Generator
+                      </h2>
+                      <p className="text-sm text-gray-500">
+                        Create beautiful, shareable study packages
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center space-x-2"
+                    >
+                      <Download className="h-4 w-4" />
+                      <span className="hidden sm:inline">Download</span>
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="bg-indigo-600 hover:bg-indigo-700 flex items-center space-x-2"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      <span className="hidden sm:inline">Generate Pack</span>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Study Pack Content */}
+              <div className="flex-1 overflow-y-auto p-6 min-h-0 bg-gray-50">
+                <div className="max-w-7xl mx-auto">
+                  {/* Pack Overview */}
+                  <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6 shadow-sm">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-4">
+                      <div>
+                        <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                          {sampleData.studyPacks.metadata.title}
+                        </h3>
+                        <p className="text-gray-600 mb-3">
+                          {sampleData.studyPacks.metadata.subtitle}
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {sampleData.studyPacks.metadata.tags.map(
+                            (tag, index) => (
+                              <span
+                                key={index}
+                                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
+                              >
+                                {tag}
+                              </span>
+                            )
+                          )}
+                        </div>
+                      </div>
+                      <div className="mt-4 lg:mt-0 lg:text-right">
+                        <div className="text-sm text-gray-500 space-y-1">
+                          <div>
+                            Level: {sampleData.studyPacks.metadata.level}
+                          </div>
+                          <div>
+                            Duration: {sampleData.studyPacks.metadata.duration}
+                          </div>
+                          <div>
+                            Reading: {sampleData.studyPacks.stats.readingTime}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Pack Stats */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-gray-200">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-indigo-600">
+                          {sampleData.studyPacks.stats.totalPages}
+                        </div>
+                        <div className="text-sm text-gray-600">Pages</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-blue-600">
+                          {sampleData.studyPacks.stats.wordCount.toLocaleString()}
+                        </div>
+                        <div className="text-sm text-gray-600">Words</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-purple-600">
+                          {sampleData.studyPacks.stats.concepts}
+                        </div>
+                        <div className="text-sm text-gray-600">Concepts</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-emerald-600">
+                          {sampleData.studyPacks.stats.flashcards}
+                        </div>
+                        <div className="text-sm text-gray-600">Flashcards</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Template Selection */}
+                  <div className="mb-6">
+                    <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                      Choose Your Template
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {sampleData.studyPacks.templates.map((template) => (
+                        <div
+                          key={template.id}
+                          className={`group relative bg-white rounded-xl border-2 cursor-pointer transition-all duration-300 overflow-hidden ${
+                            selectedTemplate === template.id
+                              ? template.color === "blue"
+                                ? "border-blue-300 ring-2 ring-blue-100 shadow-lg"
+                                : template.color === "purple"
+                                ? "border-purple-300 ring-2 ring-purple-100 shadow-lg"
+                                : template.color === "gray"
+                                ? "border-gray-300 ring-2 ring-gray-100 shadow-lg"
+                                : "border-emerald-300 ring-2 ring-emerald-100 shadow-lg"
+                              : "border-gray-200 hover:border-gray-300 hover:shadow-md"
+                          }`}
+                          onClick={() =>
+                            setSelectedTemplate(
+                              template.id as StudyPackTemplate
+                            )
+                          }
+                        >
+                          {/* Template Preview */}
+                          <div className="aspect-[3/4] bg-gradient-to-br from-gray-50 to-gray-100 relative">
+                            <div className="absolute inset-4 bg-white rounded shadow-sm">
+                              <div className="p-3 space-y-2">
+                                <div
+                                  className={`h-2 rounded w-3/4 ${
+                                    template.color === "blue"
+                                      ? "bg-blue-200"
+                                      : template.color === "purple"
+                                      ? "bg-purple-200"
+                                      : template.color === "gray"
+                                      ? "bg-gray-200"
+                                      : "bg-emerald-200"
+                                  }`}
+                                ></div>
+                                <div className="h-1 bg-gray-200 rounded w-full"></div>
+                                <div className="h-1 bg-gray-200 rounded w-5/6"></div>
+                                <div className="h-1 bg-gray-200 rounded w-4/6"></div>
+                                <div className="space-y-1 pt-2">
+                                  <div className="h-1 bg-gray-100 rounded w-full"></div>
+                                  <div className="h-1 bg-gray-100 rounded w-4/5"></div>
+                                  <div className="h-1 bg-gray-100 rounded w-3/4"></div>
+                                </div>
+                              </div>
+                            </div>
+                            {selectedTemplate === template.id && (
+                              <div className="absolute top-2 right-2">
+                                <div
+                                  className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                                    template.color === "blue"
+                                      ? "bg-blue-600"
+                                      : template.color === "purple"
+                                      ? "bg-purple-600"
+                                      : template.color === "gray"
+                                      ? "bg-gray-600"
+                                      : "bg-emerald-600"
+                                  }`}
+                                >
+                                  <CheckCircle className="w-4 h-4 text-white" />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Template Info */}
+                          <div className="p-4">
+                            <h5 className="font-semibold text-gray-900 mb-1">
+                              {template.name}
+                            </h5>
+                            <p className="text-sm text-gray-600 mb-3">
+                              {template.description}
+                            </p>
+                            <div className="space-y-1">
+                              {template.features.map((feature, index) => (
+                                <div
+                                  key={index}
+                                  className="flex items-center text-xs text-gray-500"
+                                >
+                                  <div
+                                    className={`w-1 h-1 rounded-full mr-2 ${
+                                      template.color === "blue"
+                                        ? "bg-blue-400"
+                                        : template.color === "purple"
+                                        ? "bg-purple-400"
+                                        : template.color === "gray"
+                                        ? "bg-gray-400"
+                                        : "bg-emerald-400"
+                                    }`}
+                                  ></div>
+                                  {feature}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Preview Section */}
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+                    <div className="px-6 py-4 border-b border-gray-200">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="text-lg font-semibold text-gray-900">
+                            Template Preview
+                          </h4>
+                          <p className="text-sm text-gray-500">
+                            {
+                              sampleData.studyPacks.templates.find(
+                                (t) => t.id === selectedTemplate
+                              )?.name
+                            }{" "}
+                            Style
+                          </p>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Button variant="outline" size="sm">
+                            <Eye className="h-4 w-4 mr-2" />
+                            Full Preview
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="bg-indigo-600 hover:bg-indigo-700"
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            Export PDF
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Mock Preview */}
+                    <div className="p-6">
+                      <div className="max-w-2xl mx-auto">
+                        <div
+                          className={`border-2 border-dashed rounded-lg p-8 text-center ${
+                            selectedTemplate === "academic"
+                              ? "border-blue-300 bg-blue-50"
+                              : selectedTemplate === "modern"
+                              ? "border-purple-300 bg-purple-50"
+                              : selectedTemplate === "minimal"
+                              ? "border-gray-300 bg-gray-50"
+                              : "border-emerald-300 bg-emerald-50"
+                          }`}
+                        >
+                          <div
+                            className={`w-16 h-16 mx-auto mb-4 rounded-lg flex items-center justify-center ${
+                              selectedTemplate === "academic"
+                                ? "bg-blue-100"
+                                : selectedTemplate === "modern"
+                                ? "bg-purple-100"
+                                : selectedTemplate === "minimal"
+                                ? "bg-gray-100"
+                                : "bg-emerald-100"
+                            }`}
+                          >
+                            <FileText
+                              className={`h-8 w-8 ${
+                                selectedTemplate === "academic"
+                                  ? "text-blue-600"
+                                  : selectedTemplate === "modern"
+                                  ? "text-purple-600"
+                                  : selectedTemplate === "minimal"
+                                  ? "text-gray-600"
+                                  : "text-emerald-600"
+                              }`}
+                            />
+                          </div>
+                          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                            Study Pack Preview
+                          </h3>
+                          <p className="text-gray-600 mb-4">
+                            Your complete{" "}
+                            {sampleData.studyPacks.templates
+                              .find((t) => t.id === selectedTemplate)
+                              ?.name.toLowerCase()}{" "}
+                            study package will include:
+                          </p>
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div className="text-left space-y-2">
+                              <div className="flex items-center">
+                                <BookOpen className="h-4 w-4 mr-2 text-gray-400" />
+                                Summary Notes
+                              </div>
+                              <div className="flex items-center">
+                                <Brain className="h-4 w-4 mr-2 text-gray-400" />
+                                Flashcards
+                              </div>
+                            </div>
+                            <div className="text-left space-y-2">
+                              <div className="flex items-center">
+                                <Target className="h-4 w-4 mr-2 text-gray-400" />
+                                Key Concepts
+                              </div>
+                              <div className="flex items-center">
+                                <GitBranch className="h-4 w-4 mr-2 text-gray-400" />
+                                Mind Map
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Sharing Options */}
+                  <div className="mt-6 bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                    <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                      Sharing & Export Options
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <Button
+                        variant="outline"
+                        className="flex items-center justify-center space-x-2 h-12"
+                      >
+                        <Download className="h-5 w-5" />
+                        <span>Download PDF</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="flex items-center justify-center space-x-2 h-12"
+                      >
+                        <Copy className="h-5 w-5" />
+                        <span>Copy Link</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="flex items-center justify-center space-x-2 h-12"
+                      >
+                        <Sparkles className="h-5 w-5" />
+                        <span>Share Pack</span>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Mind Map Tab */}
           {activeTab === "mindmap" && (
             <div className="flex-1 flex flex-col h-full">
-              {/* Mind Map Header - Ensure consistent height */}
-              <div className="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
-                <div className="flex items-center justify-between h-[104px]">
+              {/* Mind Map Header - Smaller consistent height */}
+              <div className="bg-white border-b border-gray-200 px-6 py-3 flex-shrink-0">
+                <div className="flex items-center justify-between h-16">
                   <div className="flex items-center space-x-3">
                     <div className="p-2 bg-orange-100 rounded-lg">
                       <GitBranch className="h-5 w-5 text-orange-600" />
@@ -1295,31 +1677,6 @@ export default function ContentGenerationPage() {
                       pannable
                     />
                   </ReactFlow>
-                </div>
-
-                {/* Mind Map Legend - Floating */}
-                <div className="absolute bottom-6 left-6 bg-white/90 backdrop-blur-sm rounded-lg p-4 border border-gray-200 shadow-lg">
-                  <h4 className="font-medium text-gray-900 mb-3 text-sm">
-                    Mind Map Legend
-                  </h4>
-                  <div className="space-y-2 text-xs">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 bg-gradient-to-r from-orange-500 to-orange-600 rounded"></div>
-                      <span className="text-gray-700">Main Topic</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 bg-gradient-to-r from-blue-500 to-blue-600 rounded"></div>
-                      <span className="text-gray-700">Primary Branch</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 bg-gradient-to-r from-purple-500 to-purple-600 rounded"></div>
-                      <span className="text-gray-700">Sub-topic</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded"></div>
-                      <span className="text-gray-700">Details</span>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>

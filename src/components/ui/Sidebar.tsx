@@ -60,9 +60,9 @@ export function Sidebar() {
 
   return (
     <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
-      {/* Logo */}
-      <div className="p-6 border-b border-gray-200">
-        <div className="flex items-center space-x-2">
+      {/* Logo - Match content page headers exactly */}
+      <div className="px-6 py-3 border-b border-gray-200">
+        <div className="flex items-center space-x-2 h-16">
           <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center">
             <span className="text-white font-bold text-sm">V</span>
           </div>

@@ -273,10 +273,10 @@ export default function FlowUploadPage() {
 
   return (
     <div className="h-screen flex flex-col bg-gray-50">
-      {/* Header */}
+      {/* Header - Match sidebar header height */}
       <div className="flex-shrink-0 bg-white border-b border-gray-200">
-        <div className="px-6 py-4">
-          <div className="flex items-center justify-between h-10">
+        <div className="px-6 py-3">
+          <div className="flex items-center justify-between h-16">
             {/* Left side - Back button */}
             <Button
               variant="ghost"
