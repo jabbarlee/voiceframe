@@ -197,130 +197,6 @@ const sampleData = {
     },
   ],
 
-  mindMap: {
-    title: "Machine Learning Fundamentals",
-    nodes: [
-      {
-        id: "root",
-        label: "Machine Learning",
-        level: 0,
-        children: ["types", "process", "applications"],
-      },
-      {
-        id: "types",
-        label: "Learning Types",
-        level: 1,
-        parent: "root",
-        children: ["supervised", "unsupervised", "reinforcement"],
-      },
-      {
-        id: "supervised",
-        label: "Supervised Learning",
-        level: 2,
-        parent: "types",
-        children: ["classification", "regression"],
-      },
-      {
-        id: "classification",
-        label: "Classification",
-        level: 3,
-        parent: "supervised",
-        description: "Predicting categories or classes",
-      },
-      {
-        id: "regression",
-        label: "Regression",
-        level: 3,
-        parent: "supervised",
-        description: "Predicting continuous values",
-      },
-      {
-        id: "unsupervised",
-        label: "Unsupervised Learning",
-        level: 2,
-        parent: "types",
-        children: ["clustering", "dimensionality"],
-      },
-      {
-        id: "clustering",
-        label: "Clustering",
-        level: 3,
-        parent: "unsupervised",
-        description: "Grouping similar data points",
-      },
-      {
-        id: "dimensionality",
-        label: "Dimensionality Reduction",
-        level: 3,
-        parent: "unsupervised",
-        description: "Reducing feature space complexity",
-      },
-      {
-        id: "reinforcement",
-        label: "Reinforcement Learning",
-        level: 2,
-        parent: "types",
-        description: "Learning through trial and error with rewards",
-      },
-      {
-        id: "process",
-        label: "ML Process",
-        level: 1,
-        parent: "root",
-        children: ["data", "training", "evaluation"],
-      },
-      {
-        id: "data",
-        label: "Data Collection",
-        level: 2,
-        parent: "process",
-        description: "Gathering and preparing datasets",
-      },
-      {
-        id: "training",
-        label: "Model Training",
-        level: 2,
-        parent: "process",
-        description: "Teaching algorithms with data",
-      },
-      {
-        id: "evaluation",
-        label: "Model Evaluation",
-        level: 2,
-        parent: "process",
-        description: "Testing model performance",
-      },
-      {
-        id: "applications",
-        label: "Applications",
-        level: 1,
-        parent: "root",
-        children: ["healthcare", "finance", "technology"],
-      },
-      {
-        id: "healthcare",
-        label: "Healthcare",
-        level: 2,
-        parent: "applications",
-        description: "Medical diagnosis, drug discovery",
-      },
-      {
-        id: "finance",
-        label: "Finance",
-        level: 2,
-        parent: "applications",
-        description: "Risk assessment, fraud detection",
-      },
-      {
-        id: "technology",
-        label: "Technology",
-        level: 2,
-        parent: "applications",
-        description: "Recommendation systems, autonomous vehicles",
-      },
-    ],
-  },
-
   studyPacks: {
     metadata: {
       title: "Machine Learning Fundamentals",
@@ -387,217 +263,10 @@ export default function ContentGenerationPage() {
   const [showTldr, setShowTldr] = useState(false);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
-  const [expandedNodes, setExpandedNodes] = useState(new Set(["root"]));
   const [selectedTemplate, setSelectedTemplate] =
     useState<StudyPackTemplate>("academic");
 
-  // Mind Map specific state and logic
-  const initialNodes: Node[] = useMemo(() => {
-    const nodes: Node[] = [];
-
-    // Root node
-    nodes.push({
-      id: "root",
-      type: "default",
-      position: { x: 400, y: 50 },
-      data: {
-        label: "Machine Learning",
-        category: "root",
-      },
-      style: {
-        background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
-        color: "white",
-        border: "none",
-        width: 200,
-        height: 80,
-        fontSize: "16px",
-        fontWeight: "bold",
-        borderRadius: "12px",
-        boxShadow: "0 10px 25px rgba(249, 115, 22, 0.3)",
-      },
-      sourcePosition: Position.Bottom,
-      targetPosition: Position.Top,
-    });
-
-    // Level 1 nodes
-    const level1Positions = [
-      { x: 100, y: 200 },
-      { x: 400, y: 200 },
-      { x: 700, y: 200 },
-    ];
-
-    const level1Nodes = sampleData.mindMap.nodes.filter((n) => n.level === 1);
-    level1Nodes.forEach((node, index) => {
-      nodes.push({
-        id: node.id,
-        type: "default",
-        position: level1Positions[index],
-        data: {
-          label: node.label,
-          category: "level1",
-        },
-        style: {
-          background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
-          color: "white",
-          border: "none",
-          width: 160,
-          height: 60,
-          fontSize: "14px",
-          fontWeight: "600",
-          borderRadius: "10px",
-          boxShadow: "0 6px 20px rgba(59, 130, 246, 0.3)",
-        },
-        sourcePosition: Position.Bottom,
-        targetPosition: Position.Top,
-      });
-    });
-
-    // Level 2 nodes
-    let level2X = 50;
-    const level2Y = 350;
-    const level2Nodes = sampleData.mindMap.nodes.filter((n) => n.level === 2);
-    level2Nodes.forEach((node) => {
-      nodes.push({
-        id: node.id,
-        type: "default",
-        position: { x: level2X, y: level2Y },
-        data: {
-          label: node.label,
-          description: node.description,
-          category: "level2",
-        },
-        style: {
-          background: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
-          color: "white",
-          border: "none",
-          width: 140,
-          height: 50,
-          fontSize: "12px",
-          fontWeight: "500",
-          borderRadius: "8px",
-          boxShadow: "0 4px 15px rgba(139, 92, 246, 0.3)",
-        },
-        sourcePosition: Position.Bottom,
-        targetPosition: Position.Top,
-      });
-      level2X += 180;
-    });
-
-    // Level 3 nodes
-    let level3X = 50;
-    const level3Y = 470;
-    const level3Nodes = sampleData.mindMap.nodes.filter((n) => n.level === 3);
-    level3Nodes.forEach((node) => {
-      nodes.push({
-        id: node.id,
-        type: "default",
-        position: { x: level3X, y: level3Y },
-        data: {
-          label: node.label,
-          description: node.description,
-          category: "level3",
-        },
-        style: {
-          background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-          color: "white",
-          border: "none",
-          width: 120,
-          height: 40,
-          fontSize: "11px",
-          fontWeight: "500",
-          borderRadius: "6px",
-          boxShadow: "0 3px 10px rgba(16, 185, 129, 0.3)",
-        },
-        sourcePosition: Position.Bottom,
-        targetPosition: Position.Top,
-      });
-      level3X += 140;
-    });
-
-    return nodes;
-  }, []);
-
-  const initialEdges: Edge[] = useMemo(() => {
-    const edges: Edge[] = [];
-
-    sampleData.mindMap.nodes.forEach((node) => {
-      if (node.parent) {
-        edges.push({
-          id: `${node.parent}-${node.id}`,
-          source: node.parent,
-          target: node.id,
-          type: "smoothstep",
-          animated: false,
-          style: {
-            stroke: "#94a3b8",
-            strokeWidth: 2,
-          },
-          markerEnd: {
-            type: MarkerType.ArrowClosed,
-            width: 20,
-            height: 20,
-            color: "#94a3b8",
-          },
-        });
-      }
-    });
-
-    return edges;
-  }, []);
-
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-
-  const onConnect = useCallback(
-    (params: any) => setEdges((eds) => addEdge(params, eds)),
-    [setEdges]
-  );
-
-  useEffect(() => {
-    setTitle("Study Materials");
-  }, [setTitle]);
-
-  const toggleNode = (nodeId: string) => {
-    const newExpanded = new Set(expandedNodes);
-    if (newExpanded.has(nodeId)) {
-      newExpanded.delete(nodeId);
-    } else {
-      newExpanded.add(nodeId);
-    }
-    setExpandedNodes(newExpanded);
-  };
-
-  const getNodesByLevel = (level: number) => {
-    return sampleData.mindMap.nodes.filter((node) => node.level === level);
-  };
-
-  const getChildNodes = (parentId: string) => {
-    return sampleData.mindMap.nodes.filter((node) => node.parent === parentId);
-  };
-
-  const uniqueCategories = [
-    ...new Set(sampleData.concepts.map((c) => c.category)),
-  ];
-
-  const nextCard = () => {
-    setCurrentCardIndex((prev) => (prev + 1) % sampleData.flashcards.length);
-    setShowAnswer(false);
-  };
-
-  const prevCard = () => {
-    setCurrentCardIndex(
-      (prev) =>
-        (prev - 1 + sampleData.flashcards.length) % sampleData.flashcards.length
-    );
-    setShowAnswer(false);
-  };
-
-  const shuffleCards = () => {
-    setCurrentCardIndex(
-      Math.floor(Math.random() * sampleData.flashcards.length)
-    );
-    setShowAnswer(false);
-  };
+  // Content generation logic...
 
   const contentTypes = [
     {
@@ -620,13 +289,6 @@ export default function ContentGenerationPage() {
       label: "Key Concepts",
       description: "Important terms and definitions",
       color: "purple",
-    },
-    {
-      id: "mindmap",
-      icon: GitBranch,
-      label: "Mind Map",
-      description: "Visual knowledge structure",
-      color: "orange",
     },
     {
       id: "studypack",
@@ -683,8 +345,6 @@ export default function ContentGenerationPage() {
                           ? "bg-blue-50 border-blue-200 shadow-sm"
                           : type.color === "purple"
                           ? "bg-purple-50 border-purple-200 shadow-sm"
-                          : type.color === "orange"
-                          ? "bg-orange-50 border-orange-200 shadow-sm"
                           : "bg-indigo-50 border-indigo-200 shadow-sm"
                         : "bg-gray-50 border-gray-200 hover:bg-gray-100"
                     }`}
@@ -699,8 +359,6 @@ export default function ContentGenerationPage() {
                               ? "bg-blue-100"
                               : type.color === "purple"
                               ? "bg-purple-100"
-                              : type.color === "orange"
-                              ? "bg-orange-100"
                               : "bg-indigo-100"
                             : "bg-gray-200"
                         }`}
@@ -714,8 +372,6 @@ export default function ContentGenerationPage() {
                                 ? "text-blue-600"
                                 : type.color === "purple"
                                 ? "text-purple-600"
-                                : type.color === "orange"
-                                ? "text-orange-600"
                                 : "text-indigo-600"
                               : "text-gray-600"
                           }`}
@@ -731,8 +387,6 @@ export default function ContentGenerationPage() {
                                 ? "text-blue-900"
                                 : type.color === "purple"
                                 ? "text-purple-900"
-                                : type.color === "orange"
-                                ? "text-orange-900"
                                 : "text-indigo-900"
                               : "text-gray-900"
                           }`}
@@ -957,7 +611,6 @@ export default function ContentGenerationPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={shuffleCards}
                       className="flex items-center space-x-2"
                     >
                       <Shuffle className="h-4 w-4" />
@@ -1068,7 +721,6 @@ export default function ContentGenerationPage() {
                 {/* Navigation Controls */}
                 <div className="flex items-center justify-between pt-6">
                   <Button
-                    onClick={prevCard}
                     variant="outline"
                     size="lg"
                     className="flex items-center space-x-2"
@@ -1098,7 +750,6 @@ export default function ContentGenerationPage() {
                   </Button>
 
                   <Button
-                    onClick={nextCard}
                     variant="outline"
                     size="lg"
                     className="flex items-center space-x-2"
@@ -1554,10 +1205,6 @@ export default function ContentGenerationPage() {
                                 <Target className="h-4 w-4 mr-2 text-gray-400" />
                                 Key Concepts
                               </div>
-                              <div className="flex items-center">
-                                <GitBranch className="h-4 w-4 mr-2 text-gray-400" />
-                                Mind Map
-                              </div>
                             </div>
                           </div>
                         </div>
@@ -1594,89 +1241,6 @@ export default function ContentGenerationPage() {
                       </Button>
                     </div>
                   </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Mind Map Tab */}
-          {activeTab === "mindmap" && (
-            <div className="flex-1 flex flex-col h-full">
-              {/* Mind Map Header - Smaller consistent height */}
-              <div className="bg-white border-b border-gray-200 px-6 py-3 flex-shrink-0">
-                <div className="flex items-center justify-between h-16">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-orange-100 rounded-lg">
-                      <GitBranch className="h-5 w-5 text-orange-600" />
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-semibold text-gray-900">
-                        Interactive Mind Map
-                      </h2>
-                      <p className="text-sm text-gray-500">
-                        Visual knowledge structure with{" "}
-                        {sampleData.mindMap.nodes.length} connected concepts
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center space-x-2"
-                    >
-                      <Download className="h-4 w-4" />
-                      <span className="hidden sm:inline">Export</span>
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Mind Map Content */}
-              <div className="flex-1 min-h-0 bg-gradient-to-br from-slate-50 to-gray-100">
-                <div className="h-full w-full">
-                  <ReactFlow
-                    nodes={nodes}
-                    edges={edges}
-                    onNodesChange={onNodesChange}
-                    onEdgesChange={onEdgesChange}
-                    onConnect={onConnect}
-                    fitView
-                    attributionPosition="top-right"
-                    className="bg-gradient-to-br from-slate-50 to-gray-100"
-                    defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
-                    minZoom={0.2}
-                    maxZoom={2}
-                    nodesDraggable={true}
-                    nodesConnectable={false}
-                    elementsSelectable={true}
-                  >
-                    <Background color="#e2e8f0" gap={20} size={1} />
-                    <Controls
-                      className="bg-white border border-gray-200 rounded-lg shadow-lg"
-                      showInteractive={false}
-                    />
-                    <MiniMap
-                      className="bg-white border border-gray-200 rounded-lg shadow-lg"
-                      nodeColor={(node) => {
-                        switch (node.data.category) {
-                          case "root":
-                            return "#f97316";
-                          case "level1":
-                            return "#3b82f6";
-                          case "level2":
-                            return "#8b5cf6";
-                          case "level3":
-                            return "#10b981";
-                          default:
-                            return "#6b7280";
-                        }
-                      }}
-                      nodeStrokeWidth={3}
-                      zoomable
-                      pannable
-                    />
-                  </ReactFlow>
                 </div>
               </div>
             </div>
