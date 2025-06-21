@@ -289,39 +289,6 @@ Thank you all for your hard work on this project. The results speak for themselv
                   <div className="font-medium text-emerald-600">Transcribe</div>
                 </div>
               </div>
-
-              {/* Connector */}
-              <div
-                className={`flex-1 h-px min-w-[2.5rem] ${
-                  isTranscribing ? "bg-gray-200" : "bg-emerald-300"
-                }`}
-              ></div>
-
-              {/* Step 3 - Pending/Available */}
-              <div className="flex items-center space-x-3">
-                <div
-                  className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                    isTranscribing
-                      ? "bg-gray-100 border-2 border-gray-300"
-                      : "bg-emerald-100 border-2 border-emerald-300"
-                  }`}
-                >
-                  <FileText
-                    className={`w-5 h-5 ${
-                      isTranscribing ? "text-gray-400" : "text-emerald-600"
-                    }`}
-                  />
-                </div>
-                <div className="text-sm">
-                  <div
-                    className={`font-medium ${
-                      isTranscribing ? "text-gray-400" : "text-emerald-600"
-                    }`}
-                  >
-                    Generate Content
-                  </div>
-                </div>
-              </div>
             </div>
 
             {/* Right side - Action buttons */}
@@ -337,7 +304,7 @@ Thank you all for your hard work on this project. The results speak for themselv
                 </Button>
               ) : (
                 <Button
-                  onClick={() => router.push(`/dashboard/content/${audioId}`)}
+                  onClick={() => router.push(`/library/${audioId}`)}
                   className="bg-emerald-600 hover:bg-emerald-700 flex items-center space-x-2"
                 >
                   <Sparkles className="h-4 w-4" />
