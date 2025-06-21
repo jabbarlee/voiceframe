@@ -359,7 +359,7 @@ Thank you all for your hard work on this project. The results speak for themselv
                     </div>
                   )}
                   <Button
-                    onClick={() => router.push(`/flow/content/${audioId}`)}
+                    onClick={() => router.push(`/library/${audioId}`)}
                     className="bg-emerald-600 hover:bg-emerald-700 flex items-center space-x-2"
                     disabled={isSavingTranscript}
                   >

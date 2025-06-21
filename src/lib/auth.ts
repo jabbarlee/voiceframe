@@ -1,5 +1,6 @@
+import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
+
 import { auth } from "@/lib/firebase";
-import { onAuthStateChanged } from "firebase/auth";
 
 export const getCurrentUserToken = async (): Promise<string | null> => {
   return new Promise((resolve) => {
