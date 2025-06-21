@@ -53,6 +53,7 @@ export default function AudioTranscriptionPage() {
   );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isSavingTranscript, setIsSavingTranscript] = useState(false);
 
   // Sample transcript segments that will appear progressively
   const sampleTranscript = `Welcome to today's product review meeting. I'm excited to discuss the progress we've made on our voice transcription platform.
@@ -117,6 +118,49 @@ Thank you all for your hard work on this project. The results speak for themselv
     // If user is undefined, we're still loading auth state
   }, [user, audioId]);
 
+  // Save transcript to database when transcription is completed
+  const saveTranscript = async (transcript: string) => {
+    if (!audioMetadata || !transcript.trim()) return;
+
+    try {
+      setIsSavingTranscript(true);
+      console.log("💾 Saving transcript to database...");
+
+      const token = await getCurrentUserToken();
+      if (!token) {
+        console.error("❌ No auth token available");
+        return;
+      }
+
+      const response = await fetch("/api/transcripts", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          audio_file_id: audioMetadata.id,
+          content: transcript,
+          language: "en", // Default to English, could be detected or user-selected
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to save transcript");
+      }
+
+      console.log("✅ Transcript saved successfully:", data.data.id);
+    } catch (error: any) {
+      console.error("❌ Error saving transcript:", error);
+      // Don't show error to user as this is background operation
+      // Could add a toast notification here if needed
+    } finally {
+      setIsSavingTranscript(false);
+    }
+  };
+
   // Simulate transcription progress
   useEffect(() => {
     if (!isTranscribing) return;
@@ -135,10 +179,14 @@ Thank you all for your hard work on this project. The results speak for themselv
     return () => clearInterval(interval);
   }, [isTranscribing]);
 
-  // Simulate live transcript updates
+  // Simulate live transcript updates and save when completed
   useEffect(() => {
     if (!isTranscribing) {
       setCurrentTranscript(sampleTranscript);
+      // Save transcript when transcription is completed
+      if (audioMetadata && sampleTranscript.trim()) {
+        saveTranscript(sampleTranscript);
+      }
       return;
     }
 
@@ -146,7 +194,7 @@ Thank you all for your hard work on this project. The results speak for themselv
       (transcriptionProgress / 100) * sampleTranscript.length
     );
     setCurrentTranscript(sampleTranscript.substring(0, targetLength));
-  }, [transcriptionProgress, isTranscribing, sampleTranscript]);
+  }, [transcriptionProgress, isTranscribing, sampleTranscript, audioMetadata]);
 
   const formatFileSize = (bytes: number) => {
     const sizes = ["Bytes", "KB", "MB", "GB"];
@@ -303,13 +351,22 @@ Thank you all for your hard work on this project. The results speak for themselv
                   <span className="hidden sm:inline">Processing...</span>
                 </Button>
               ) : (
-                <Button
-                  onClick={() => router.push(`/library/${audioId}`)}
-                  className="bg-emerald-600 hover:bg-emerald-700 flex items-center space-x-2"
-                >
-                  <Sparkles className="h-4 w-4" />
-                  <span className="hidden sm:inline">Generate Content</span>
-                </Button>
+                <div className="flex items-center space-x-2">
+                  {isSavingTranscript && (
+                    <div className="flex items-center space-x-2 text-sm text-gray-500 mr-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="hidden sm:inline">Saving...</span>
+                    </div>
+                  )}
+                  <Button
+                    onClick={() => router.push(`/flow/content/${audioId}`)}
+                    className="bg-emerald-600 hover:bg-emerald-700 flex items-center space-x-2"
+                    disabled={isSavingTranscript}
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    <span className="hidden sm:inline">Generate Content</span>
+                  </Button>
+                </div>
               )}
             </div>
           </div>
@@ -340,11 +397,19 @@ Thank you all for your hard work on this project. The results speak for themselv
           </div>
         ) : (
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <div className="flex items-center space-x-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <span className="text-green-800 font-medium">
-                Transcription completed successfully!
-              </span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                <span className="text-green-800 font-medium">
+                  Transcription completed successfully!
+                </span>
+              </div>
+              {isSavingTranscript && (
+                <div className="flex items-center space-x-2 text-green-600">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm">Saving transcript...</span>
+                </div>
+              )}
             </div>
           </div>
         )}

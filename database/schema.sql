@@ -21,6 +21,19 @@ CREATE TABLE IF NOT EXISTS audio_files (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+create table transcripts (
+  id uuid primary key default gen_random_uuid(),
+  audio_file_id uuid not null references audio_files(id) on delete cascade,
+  uid text not null references users(uid) on delete cascade,
+
+  content text not null,
+  language text default 'en',
+  word_count int,
+
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
 -- Audio files indexes
 CREATE INDEX IF NOT EXISTS idx_audio_files_uid ON audio_files(uid);
 CREATE INDEX IF NOT EXISTS idx_audio_files_status ON audio_files(status);
