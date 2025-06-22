@@ -34,6 +34,22 @@ create table transcripts (
   updated_at timestamptz default now()
 );
 
+create table learning_content (
+  id uuid primary key default gen_random_uuid(),
+  uid text not null references users(uid) on delete cascade,
+  audio_file_id uuid not null references audio_files(id) on delete cascade,
+  content jsonb not null,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  
+  -- Ensure one learning content per audio file per user
+  UNIQUE(audio_file_id, uid)
+);
+
+-- Add indexes for learning_content
+CREATE INDEX IF NOT EXISTS idx_learning_content_uid ON learning_content(uid);
+CREATE INDEX IF NOT EXISTS idx_learning_content_audio_file_id ON learning_content(audio_file_id);
+
 -- Audio files indexes
 CREATE INDEX IF NOT EXISTS idx_audio_files_uid ON audio_files(uid);
 CREATE INDEX IF NOT EXISTS idx_audio_files_status ON audio_files(status);

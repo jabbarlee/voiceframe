@@ -49,6 +49,7 @@ import ReactFlow, {
   MarkerType,
 } from "reactflow";
 import "reactflow/dist/style.css";
+import { getCurrentUserToken } from "@/lib/auth";
 
 // Add type definitions
 type SummaryTone = "professional" | "friendly" | "eli5";
@@ -101,7 +102,7 @@ interface ContentData {
 
 // Default/fallback data
 const defaultData = {
-  audioTitle: "Introduction to Machine Learning - Lecture 1",
+  audioTitle: "DEFAULT DATA - Machine Learning Overview",
   duration: "45 minutes",
   processedAt: "2024-01-15T10:30:00Z",
 
@@ -318,19 +319,33 @@ export default function ContentGenerationPage() {
 
   // Fetch content data from API
   useEffect(() => {
+    let ignore = false;
+
     const fetchContentData = async () => {
+      if (ignore) return;
       try {
         setIsLoading(true);
-        const response = await fetch(`/api/content/${audioId}`);
-        if (!response.ok) {
-          throw new Error("Failed to fetch content data");
-        }
-        const data = await response.json();
-        setContentData(data);
-        setTitle(data.audioTitle); // Set page title
+
+        if (!user) throw new Error("Authentication required");
+        const idToken = await getCurrentUserToken();
+
+        const response = await fetch(`/api/content/${audioId}`, {
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        const result = await response.json();
+        if (!result.success)
+          throw new Error(result.error || "Failed to load content");
+
+        setContentData(result.data);
+        setTitle(result.data.audioTitle);
+
+        console.log(`✅ Content loaded from ${result.source}`);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load content");
-        // Fallback to default data
         setContentData(defaultData);
         setTitle(defaultData.audioTitle);
       } finally {
@@ -338,8 +353,12 @@ export default function ContentGenerationPage() {
       }
     };
 
-    fetchContentData();
-  }, [audioId, setTitle]);
+    if (user) fetchContentData();
+
+    return () => {
+      ignore = true;
+    };
+  }, [audioId, setTitle, user]);
 
   // Show loading state
   if (isLoading) {
