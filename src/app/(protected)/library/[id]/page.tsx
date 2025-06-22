@@ -54,8 +54,53 @@ import "reactflow/dist/style.css";
 type SummaryTone = "professional" | "friendly" | "eli5";
 type StudyPackTemplate = "academic" | "modern" | "minimal" | "creative";
 
-// Sample boilerplate data
-const sampleData = {
+interface ContentData {
+  audioTitle: string;
+  duration: string;
+  processedAt: string;
+  summary: {
+    professional: {
+      title: string;
+      sections: { heading: string; content: string }[];
+    };
+    friendly: {
+      title: string;
+      sections: { heading: string; content: string }[];
+    };
+    eli5: { title: string; sections: { heading: string; content: string }[] };
+  };
+  flashcards: { id: number; question: string; answer: string }[];
+  concepts: { term: string; definition: string }[];
+  studyPacks: {
+    metadata: {
+      title: string;
+      subtitle: string;
+      author: string;
+      tags: string[];
+      duration: string;
+      level: string;
+      generatedAt: string;
+    };
+    templates: {
+      id: string;
+      name: string;
+      description: string;
+      preview: string;
+      color: string;
+      features: string[];
+    }[];
+    stats: {
+      totalPages: number;
+      wordCount: number;
+      readingTime: string;
+      concepts: number;
+      flashcards: number;
+    };
+  };
+}
+
+// Default/fallback data
+const defaultData = {
   audioTitle: "Introduction to Machine Learning - Lecture 1",
   duration: "45 minutes",
   processedAt: "2024-01-15T10:30:00Z",
@@ -266,7 +311,62 @@ export default function ContentGenerationPage() {
   const [selectedTemplate, setSelectedTemplate] =
     useState<StudyPackTemplate>("academic");
 
-  // Content generation logic...
+  // Data fetching state
+  const [contentData, setContentData] = useState<ContentData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch content data from API
+  useEffect(() => {
+    const fetchContentData = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch(`/api/content/${audioId}`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch content data");
+        }
+        const data = await response.json();
+        setContentData(data);
+        setTitle(data.audioTitle); // Set page title
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load content");
+        // Fallback to default data
+        setContentData(defaultData);
+        setTitle(defaultData.audioTitle);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchContentData();
+  }, [audioId, setTitle]);
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading content...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error && !contentData) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">Error: {error}</p>
+          <Button onClick={() => window.location.reload()}>Try Again</Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Use contentData or fallback to defaultData
+  const data = contentData || defaultData;
 
   const contentTypes = [
     {
@@ -307,6 +407,7 @@ export default function ContentGenerationPage() {
         <div className="w-80 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col">
           {/* Audio Info Header - Smaller height */}
           <div className="px-6 py-3 border-b border-gray-200 flex-shrink-0">
+            {" "}
             <div className="flex items-center space-x-3 h-16">
               <div className="p-2 bg-emerald-100 rounded-lg">
                 <FileAudio className="h-6 w-6 text-emerald-600" />
@@ -314,13 +415,13 @@ export default function ContentGenerationPage() {
               <div className="flex-1 min-w-0">
                 <h3
                   className="font-semibold text-gray-900 truncate"
-                  title={sampleData.audioTitle}
+                  title={data.audioTitle}
                 >
-                  {sampleData.audioTitle}
+                  {data.audioTitle}
                 </h3>
                 <div className="flex items-center space-x-2 text-sm text-gray-500">
                   <Clock className="h-4 w-4 flex-shrink-0" />
-                  <span>{sampleData.duration}</span>
+                  <span>{data.duration}</span>
                 </div>
               </div>
             </div>
@@ -491,12 +592,12 @@ export default function ContentGenerationPage() {
                       {/* Article Header */}
                       <div className="border-b border-gray-200 p-8">
                         <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                          {sampleData.summary[summaryTone].title}
+                          {data.summary[summaryTone].title}
                         </h1>
                         <div className="flex items-center space-x-4 text-sm text-gray-500">
                           <span className="flex items-center space-x-1">
                             <Clock className="h-4 w-4" />
-                            <span>{sampleData.duration}</span>
+                            <span>{data.duration}</span>
                           </span>
                           <span>•</span>
                           <span>Generated from audio transcription</span>
@@ -506,8 +607,8 @@ export default function ContentGenerationPage() {
                       {/* Article Content */}
                       <div className="p-8">
                         <div className="prose prose-gray prose-lg max-w-none">
-                          {sampleData.summary[summaryTone].sections.map(
-                            (section, index) => (
+                          {data.summary[summaryTone].sections.map(
+                            (section: any, index: number) => (
                               <div key={index} className="mb-8 last:mb-0">
                                 <h2 className="text-xl font-semibold text-gray-900 mb-4 border-l-4 border-emerald-500 pl-4">
                                   {section.heading}
@@ -605,7 +706,7 @@ export default function ContentGenerationPage() {
                     <div className="hidden sm:flex items-center space-x-2 px-3 py-1.5 bg-blue-50 rounded-lg">
                       <TrendingUp className="h-4 w-4 text-blue-600" />
                       <span className="text-sm font-medium text-blue-900">
-                        {currentCardIndex + 1} of {sampleData.flashcards.length}
+                        {currentCardIndex + 1} of {data.flashcards.length}
                       </span>
                     </div>
                     <Button
@@ -642,9 +743,7 @@ export default function ContentGenerationPage() {
                     </span>
                     <span className="text-sm text-gray-500">
                       {Math.round(
-                        ((currentCardIndex + 1) /
-                          sampleData.flashcards.length) *
-                          100
+                        ((currentCardIndex + 1) / data.flashcards.length) * 100
                       )}
                       %
                     </span>
@@ -654,8 +753,7 @@ export default function ContentGenerationPage() {
                       className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                       style={{
                         width: `${
-                          ((currentCardIndex + 1) /
-                            sampleData.flashcards.length) *
+                          ((currentCardIndex + 1) / data.flashcards.length) *
                           100
                         }%`,
                       }}
@@ -699,9 +797,8 @@ export default function ContentGenerationPage() {
                           {/* Content */}
                           <div className="text-xl leading-relaxed text-gray-900 mb-8 whitespace-pre-wrap">
                             {showAnswer
-                              ? sampleData.flashcards[currentCardIndex].answer
-                              : sampleData.flashcards[currentCardIndex]
-                                  .question}
+                              ? data.flashcards[currentCardIndex].answer
+                              : data.flashcards[currentCardIndex].question}
                           </div>
 
                           {/* Interaction Hint */}
@@ -725,6 +822,12 @@ export default function ContentGenerationPage() {
                     size="lg"
                     className="flex items-center space-x-2"
                     disabled={currentCardIndex === 0}
+                    onClick={() => {
+                      if (currentCardIndex > 0) {
+                        setCurrentCardIndex(currentCardIndex - 1);
+                        setShowAnswer(false);
+                      }
+                    }}
                   >
                     <ArrowLeftIcon className="h-5 w-5" />
                     <span>Previous</span>
@@ -753,9 +856,13 @@ export default function ContentGenerationPage() {
                     variant="outline"
                     size="lg"
                     className="flex items-center space-x-2"
-                    disabled={
-                      currentCardIndex === sampleData.flashcards.length - 1
-                    }
+                    disabled={currentCardIndex === data.flashcards.length - 1}
+                    onClick={() => {
+                      if (currentCardIndex < data.flashcards.length - 1) {
+                        setCurrentCardIndex(currentCardIndex + 1);
+                        setShowAnswer(false);
+                      }
+                    }}
                   >
                     <span>Next</span>
                     <ArrowRight className="h-5 w-5" />
@@ -766,7 +873,7 @@ export default function ContentGenerationPage() {
                 <div className="mt-6 grid grid-cols-3 gap-4">
                   <div className="bg-white rounded-lg p-4 text-center border border-gray-200 shadow-sm">
                     <div className="text-2xl font-bold text-blue-600">
-                      {sampleData.flashcards.length}
+                      {data.flashcards.length}
                     </div>
                     <div className="text-sm text-gray-600">Total Cards</div>
                   </div>
@@ -778,7 +885,7 @@ export default function ContentGenerationPage() {
                   </div>
                   <div className="bg-white rounded-lg p-4 text-center border border-gray-200 shadow-sm">
                     <div className="text-2xl font-bold text-gray-600">
-                      {sampleData.flashcards.length - currentCardIndex - 1}
+                      {data.flashcards.length - currentCardIndex - 1}
                     </div>
                     <div className="text-sm text-gray-600">Remaining</div>
                   </div>
@@ -802,8 +909,7 @@ export default function ContentGenerationPage() {
                         Key Concepts
                       </h2>
                       <p className="text-sm text-gray-500">
-                        {sampleData.concepts.length} essential terms and
-                        definitions
+                        {data.concepts.length} essential terms and definitions
                       </p>
                     </div>
                   </div>
@@ -825,7 +931,7 @@ export default function ContentGenerationPage() {
                 <div className="max-w-4xl mx-auto">
                   {/* Concepts List */}
                   <div className="space-y-4">
-                    {sampleData.concepts.map((concept, index) => (
+                    {data.concepts.map((concept: any, index: number) => (
                       <div
                         key={index}
                         className="group bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md hover:border-purple-200 transition-all duration-300"
@@ -869,7 +975,7 @@ export default function ContentGenerationPage() {
                   <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="bg-white rounded-lg p-4 text-center border border-gray-200 shadow-sm">
                       <div className="text-2xl font-bold text-purple-600">
-                        {sampleData.concepts.length}
+                        {data.concepts.length}
                       </div>
                       <div className="text-sm text-gray-600">
                         Total Concepts
@@ -880,7 +986,7 @@ export default function ContentGenerationPage() {
                         {
                           [
                             ...new Set(
-                              sampleData.concepts.map((c) => c.category)
+                              data.concepts.map((c: any) => c.category)
                             ),
                           ].length
                         }
@@ -942,14 +1048,14 @@ export default function ContentGenerationPage() {
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-4">
                       <div>
                         <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                          {sampleData.studyPacks.metadata.title}
+                          {data.studyPacks.metadata.title}
                         </h3>
                         <p className="text-gray-600 mb-3">
-                          {sampleData.studyPacks.metadata.subtitle}
+                          {data.studyPacks.metadata.subtitle}
                         </p>
                         <div className="flex flex-wrap gap-2">
-                          {sampleData.studyPacks.metadata.tags.map(
-                            (tag, index) => (
+                          {data.studyPacks.metadata.tags.map(
+                            (tag: string, index: number) => (
                               <span
                                 key={index}
                                 className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
@@ -962,14 +1068,12 @@ export default function ContentGenerationPage() {
                       </div>
                       <div className="mt-4 lg:mt-0 lg:text-right">
                         <div className="text-sm text-gray-500 space-y-1">
+                          <div>Level: {data.studyPacks.metadata.level}</div>
                           <div>
-                            Level: {sampleData.studyPacks.metadata.level}
+                            Duration: {data.studyPacks.metadata.duration}
                           </div>
                           <div>
-                            Duration: {sampleData.studyPacks.metadata.duration}
-                          </div>
-                          <div>
-                            Reading: {sampleData.studyPacks.stats.readingTime}
+                            Reading: {data.studyPacks.stats.readingTime}
                           </div>
                         </div>
                       </div>
@@ -979,25 +1083,25 @@ export default function ContentGenerationPage() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-gray-200">
                       <div className="text-center">
                         <div className="text-2xl font-bold text-indigo-600">
-                          {sampleData.studyPacks.stats.totalPages}
+                          {data.studyPacks.stats.totalPages}
                         </div>
                         <div className="text-sm text-gray-600">Pages</div>
                       </div>
                       <div className="text-center">
                         <div className="text-2xl font-bold text-blue-600">
-                          {sampleData.studyPacks.stats.wordCount.toLocaleString()}
+                          {data.studyPacks.stats.wordCount.toLocaleString()}
                         </div>
                         <div className="text-sm text-gray-600">Words</div>
                       </div>
                       <div className="text-center">
                         <div className="text-2xl font-bold text-purple-600">
-                          {sampleData.studyPacks.stats.concepts}
+                          {data.studyPacks.stats.concepts}
                         </div>
                         <div className="text-sm text-gray-600">Concepts</div>
                       </div>
                       <div className="text-center">
                         <div className="text-2xl font-bold text-emerald-600">
-                          {sampleData.studyPacks.stats.flashcards}
+                          {data.studyPacks.stats.flashcards}
                         </div>
                         <div className="text-sm text-gray-600">Flashcards</div>
                       </div>
@@ -1010,7 +1114,7 @@ export default function ContentGenerationPage() {
                       Choose Your Template
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                      {sampleData.studyPacks.templates.map((template) => (
+                      {data.studyPacks.templates.map((template: any) => (
                         <div
                           key={template.id}
                           className={`group relative bg-white rounded-xl border-2 cursor-pointer transition-all duration-300 overflow-hidden ${
@@ -1083,25 +1187,27 @@ export default function ContentGenerationPage() {
                               {template.description}
                             </p>
                             <div className="space-y-1">
-                              {template.features.map((feature, index) => (
-                                <div
-                                  key={index}
-                                  className="flex items-center text-xs text-gray-500"
-                                >
+                              {template.features.map(
+                                (feature: any, index: number) => (
                                   <div
-                                    className={`w-1 h-1 rounded-full mr-2 ${
-                                      template.color === "blue"
-                                        ? "bg-blue-400"
-                                        : template.color === "purple"
-                                        ? "bg-purple-400"
-                                        : template.color === "gray"
-                                        ? "bg-gray-400"
-                                        : "bg-emerald-400"
-                                    }`}
-                                  ></div>
-                                  {feature}
-                                </div>
-                              ))}
+                                    key={index}
+                                    className="flex items-center text-xs text-gray-500"
+                                  >
+                                    <div
+                                      className={`w-1 h-1 rounded-full mr-2 ${
+                                        template.color === "blue"
+                                          ? "bg-blue-400"
+                                          : template.color === "purple"
+                                          ? "bg-purple-400"
+                                          : template.color === "gray"
+                                          ? "bg-gray-400"
+                                          : "bg-emerald-400"
+                                      }`}
+                                    ></div>
+                                    {feature}
+                                  </div>
+                                )
+                              )}
                             </div>
                           </div>
                         </div>
@@ -1119,8 +1225,8 @@ export default function ContentGenerationPage() {
                           </h4>
                           <p className="text-sm text-gray-500">
                             {
-                              sampleData.studyPacks.templates.find(
-                                (t) => t.id === selectedTemplate
+                              data.studyPacks.templates.find(
+                                (t: any) => t.id === selectedTemplate
                               )?.name
                             }{" "}
                             Style
@@ -1184,8 +1290,8 @@ export default function ContentGenerationPage() {
                           </h3>
                           <p className="text-gray-600 mb-4">
                             Your complete{" "}
-                            {sampleData.studyPacks.templates
-                              .find((t) => t.id === selectedTemplate)
+                            {data.studyPacks.templates
+                              .find((t: any) => t.id === selectedTemplate)
                               ?.name.toLowerCase()}{" "}
                             study package will include:
                           </p>
