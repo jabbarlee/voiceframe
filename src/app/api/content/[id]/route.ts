@@ -323,6 +323,16 @@ export async function GET(
             .single();
 
           if (existingAfterError) {
+            // Also update audio file status to completed if not already
+            await supabaseAdmin
+              .from("audio_files")
+              .update({
+                status: "completed",
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", audioId)
+              .eq("uid", uid);
+
             return NextResponse.json({
               success: true,
               data: existingAfterError.content,
@@ -341,6 +351,24 @@ export async function GET(
         });
       } else {
         console.log("✅ Learning content stored successfully in database");
+
+        // Update the audio file status to 'completed'
+        const { error: statusUpdateError } = await supabaseAdmin
+          .from("audio_files")
+          .update({ status: "completed", updated_at: new Date().toISOString() })
+          .eq("id", audioId)
+          .eq("uid", uid);
+
+        if (statusUpdateError) {
+          console.error(
+            "❌ Failed to update audio file status:",
+            statusUpdateError
+          );
+          // Continue anyway, content was stored successfully
+        } else {
+          console.log("✅ Audio file status updated to 'completed'");
+        }
+
         return NextResponse.json({
           success: true,
           data: contentData,
