@@ -5,12 +5,13 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Settings,
-  Edit3,
+  Upload,
   FileText,
-  Mic,
+  Library,
   User,
   LogOut,
   ChevronRight,
+  Zap,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Button } from "@/components/ui/button";
@@ -23,22 +24,22 @@ const navigation = [
     description: "Overview and analytics",
   },
   {
-    name: "Audio Editor",
-    href: "/editor",
-    icon: Edit3,
-    description: "Edit and enhance audio",
+    name: "Upload Audio",
+    href: "/flow/upload",
+    icon: Upload,
+    description: "Upload new audio files",
   },
   {
-    name: "Transcriptions",
-    href: "/transcriptions",
-    icon: FileText,
-    description: "Manage transcriptions",
+    name: "Library",
+    href: "/library",
+    icon: Library,
+    description: "Manage your audio files",
   },
   {
-    name: "Voice Library",
-    href: "/voice-library",
-    icon: Mic,
-    description: "Audio file management",
+    name: "Content Generator",
+    href: "/flow/generate",
+    icon: Zap,
+    description: "AI-powered content creation",
   },
   {
     name: "Profile",
