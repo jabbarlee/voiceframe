@@ -311,21 +311,6 @@ export default function FlowUploadPage() {
                   <div className="font-medium text-gray-400">Analyze</div>
                 </div>
               </div>
-
-              {/* Connector */}
-              <div className="flex-1 h-px bg-gray-200 min-w-[2.5rem]"></div>
-
-              {/* Step 3 - Pending */}
-              <div className="flex items-center space-x-3">
-                <div className="flex items-center justify-center w-8 h-8 bg-gray-100 border-2 border-gray-300 rounded-full">
-                  <FileText className="w-5 h-5 text-gray-400" />
-                </div>
-                <div className="text-sm">
-                  <div className="font-medium text-gray-400">
-                    Generate Content
-                  </div>
-                </div>
-              </div>
             </div>
 
             {/* Right side - Upload button */}
