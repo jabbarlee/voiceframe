@@ -21,7 +21,7 @@ export async function GET(
       );
     }
 
-    const userId = params.id;
+    const userId = await params.id;
 
     // Fetch user data
     const { data: userData, error: userError } = await supabase

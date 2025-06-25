@@ -50,13 +50,26 @@ interface AudioFile {
   hasContent?: boolean;
 }
 
+interface UserUsage {
+  id: string;
+  uid: string;
+  plan: string;
+  allowed_minutes: number;
+  used_minutes: number;
+  cycle_start: string;
+  remaining_minutes: number;
+  is_over_limit: boolean;
+}
+
 export default function LibraryPage() {
   const { setTitle } = usePageTitle();
   const { user } = useAuth();
   const router = useRouter();
 
   const [audioFiles, setAudioFiles] = useState<AudioFile[]>([]);
+  const [userUsage, setUserUsage] = useState<UserUsage | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingUsage, setIsLoadingUsage] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -104,6 +117,37 @@ export default function LibraryPage() {
     };
 
     fetchAudioFiles();
+  }, [user]);
+
+  // Fetch user usage data
+  useEffect(() => {
+    const fetchUsage = async () => {
+      if (!user) return;
+
+      try {
+        setIsLoadingUsage(true);
+        const idToken = await getCurrentUserToken();
+
+        const response = await fetch("/api/usage", {
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setUserUsage(data.data);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch usage:", error);
+      } finally {
+        setIsLoadingUsage(false);
+      }
+    };
+
+    fetchUsage();
   }, [user]);
 
   // Filter, search, and sort logic
@@ -609,7 +653,8 @@ export default function LibraryPage() {
         {/* Stats Footer */}
         {audioFiles.length > 0 && (
           <div className="bg-white border-t border-gray-200 p-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Total Files */}
               <div className="bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl p-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -624,56 +669,75 @@ export default function LibraryPage() {
                 </div>
               </div>
 
-              <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-4">
+              {/* Completed Files */}
+              <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-xl p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-sm font-medium text-blue-600">
+                    <div className="text-sm font-medium text-emerald-600">
                       Completed
                     </div>
-                    <div className="text-2xl font-bold text-blue-900">
+                    <div className="text-2xl font-bold text-emerald-900">
                       {
                         audioFiles.filter((f) => f.status === "completed")
                           .length
                       }
                     </div>
                   </div>
-                  <CheckCircle className="h-8 w-8 text-blue-600" />
+                  <CheckCircle className="h-8 w-8 text-emerald-600" />
                 </div>
               </div>
 
-              <div className="bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl p-4">
+              {/* Usage Stats */}
+              <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-sm font-medium text-orange-600">
-                      Processing
+                    <div className="text-sm font-medium text-blue-600">
+                      {isLoadingUsage ? "Loading..." : "Used This Month"}
                     </div>
-                    <div className="text-2xl font-bold text-orange-900">
-                      {
-                        audioFiles.filter((f) => f.status === "processing")
-                          .length
-                      }
+                    <div className="text-2xl font-bold text-blue-900">
+                      {isLoadingUsage ? (
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                      ) : userUsage ? (
+                        `${userUsage.used_minutes}/${userUsage.allowed_minutes}`
+                      ) : (
+                        "0/30"
+                      )}
                     </div>
+                    {!isLoadingUsage && userUsage && (
+                      <div className="text-xs text-blue-600 mt-1">
+                        {userUsage.remaining_minutes} minutes left
+                      </div>
+                    )}
                   </div>
-                  <Loader2 className="h-8 w-8 text-orange-600" />
+                  <Clock className="h-8 w-8 text-blue-600" />
                 </div>
               </div>
 
+              {/* Current Plan */}
               <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-sm font-medium text-purple-600">
-                      Total Size
+                      Current Plan
                     </div>
-                    <div className="text-2xl font-bold text-purple-900">
-                      {formatFileSize(
-                        audioFiles.reduce(
-                          (sum, file) => sum + file.file_size_bytes,
-                          0
-                        )
+                    <div className="text-2xl font-bold text-purple-900 capitalize">
+                      {isLoadingUsage ? (
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                      ) : userUsage ? (
+                        userUsage.plan
+                      ) : (
+                        "Free"
                       )}
                     </div>
+                    {!isLoadingUsage &&
+                      userUsage &&
+                      userUsage.is_over_limit && (
+                        <div className="text-xs text-red-600 mt-1 font-medium">
+                          Limit exceeded
+                        </div>
+                      )}
                   </div>
-                  <HardDrive className="h-8 w-8 text-purple-600" />
+                  <TrendingUp className="h-8 w-8 text-purple-600" />
                 </div>
               </div>
             </div>

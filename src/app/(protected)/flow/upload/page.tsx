@@ -251,6 +251,8 @@ export default function FlowUploadPage() {
                   message: errorResponse.error,
                   usage: errorResponse.usage,
                 });
+                // Discard the selected file when usage limit is exceeded
+                setSelectedFile(null);
                 reject(new Error("Usage limit exceeded"));
               } else {
                 reject(new Error(errorResponse.error || "Access denied"));
@@ -459,7 +461,84 @@ export default function FlowUploadPage() {
         <div className="flex-1 flex flex-col min-h-0">
           {/* Upload Card */}
           <div className="flex-1 bg-white rounded-xl border border-gray-200 flex flex-col min-h-0">
-            {!selectedFile ? (
+            {/* Usage Error Display - Centered */}
+            {usageError ? (
+              <div className="flex-1 flex items-center justify-center p-8">
+                <div className="max-w-md w-full">
+                  <div className="p-8 bg-amber-50 border border-amber-200 rounded-xl">
+                    <div className="text-center mb-6">
+                      <div className="p-4 bg-amber-100 rounded-full inline-block mb-4">
+                        <AlertCircle className="h-12 w-12 text-amber-600" />
+                      </div>
+                      <h2 className="text-2xl font-bold text-amber-800 mb-2">
+                        Usage Limit Reached
+                      </h2>
+                      <p className="text-amber-700 text-lg">
+                        {usageError.message}
+                      </p>
+                    </div>
+
+                    {usageError.usage && (
+                      <div className="mb-6 p-4 bg-white rounded-lg">
+                        <h3 className="font-semibold text-amber-800 mb-3">
+                          Current Usage
+                        </h3>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Plan:</span>
+                            <span className="font-medium capitalize">
+                              {usageError.usage.plan}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">
+                              Monthly Limit:
+                            </span>
+                            <span className="font-medium">
+                              {usageError.usage.allowed_minutes} minutes
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Used:</span>
+                            <span className="font-medium">
+                              {usageError.usage.used_minutes} minutes
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Remaining:</span>
+                            <span className="font-medium text-red-600">
+                              {usageError.usage.remaining_minutes} minutes
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex flex-col space-y-3">
+                      <Button
+                        onClick={() => router.push("/pricing")}
+                        className="w-full bg-emerald-600 hover:bg-emerald-700"
+                        size="lg"
+                      >
+                        Upgrade Your Plan
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setUsageError(null);
+                          setSelectedFile(null);
+                          setError("");
+                        }}
+                        className="w-full"
+                        size="lg"
+                      >
+                        Try Different File
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : !selectedFile ? (
               <div className="flex-1 flex flex-col">
                 <div className="text-center p-6 pb-3">
                   <div className="flex items-center justify-center mb-6">
@@ -591,59 +670,6 @@ export default function FlowUploadPage() {
                   </div>
                 )}
 
-                {/* Usage Error Display */}
-                {usageError && (
-                  <div className="mb-8 p-8 bg-amber-50 border border-amber-200 rounded-xl">
-                    <div className="flex items-start space-x-4">
-                      <AlertCircle className="h-8 w-8 text-amber-600 flex-shrink-0" />
-                      <div className="flex-1">
-                        <p className="font-medium text-amber-800 text-lg">
-                          Usage Limit Reached
-                        </p>
-                        <p className="text-amber-700 mt-1 mb-4">
-                          {usageError.message}
-                        </p>
-                        {usageError.usage && (
-                          <div className="space-y-2 text-sm text-amber-700">
-                            <p>
-                              <span className="font-medium">Current Plan:</span>{" "}
-                              {usageError.usage.plan}
-                            </p>
-                            <p>
-                              <span className="font-medium">
-                                Monthly Limit:
-                              </span>{" "}
-                              {usageError.usage.allowed_minutes} minutes
-                            </p>
-                            <p>
-                              <span className="font-medium">Used:</span>{" "}
-                              {usageError.usage.used_minutes} minutes
-                            </p>
-                            <p>
-                              <span className="font-medium">Remaining:</span>{" "}
-                              {usageError.usage.remaining_minutes} minutes
-                            </p>
-                          </div>
-                        )}
-                        <div className="mt-4 flex space-x-3">
-                          <Button
-                            onClick={() => router.push("/pricing")}
-                            className="bg-emerald-600 hover:bg-emerald-700"
-                          >
-                            Upgrade Plan
-                          </Button>
-                          <Button
-                            variant="outline"
-                            onClick={() => setUsageError(null)}
-                          >
-                            Dismiss
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 {/* Error Display */}
                 {error && (
                   <div className="mb-8 p-8 bg-red-50 border border-red-200 rounded-xl">
@@ -681,35 +707,37 @@ export default function FlowUploadPage() {
         </div>
 
         {/* Right Side - Info Section */}
-        <div className="w-72 flex-shrink-0 flex flex-col gap-6 min-h-0">
+        <div className="w-72 flex-shrink-0 flex flex-col gap-4 min-h-0">
           {/* Usage Status */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <div className="flex items-start space-x-4 mb-4">
+          <div className="bg-white rounded-xl border border-gray-200 p-4 flex-shrink-0">
+            <div className="flex items-start space-x-3 mb-3">
               <div className="p-2 bg-emerald-100 rounded-lg flex-shrink-0">
-                <Clock className="h-6 w-6 text-emerald-600" />
+                <Clock className="h-5 w-5 text-emerald-600" />
               </div>
-              <h3 className="font-semibold text-gray-900">Usage This Month</h3>
+              <h3 className="font-semibold text-gray-900 text-sm">
+                Usage This Month
+              </h3>
             </div>
             {loadingUsage ? (
               <div className="flex items-center space-x-2 text-gray-500">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                <span className="text-sm">Loading usage...</span>
+                <span className="text-xs">Loading usage...</span>
               </div>
             ) : userUsage ? (
-              <div className="space-y-3">
-                <div className="flex justify-between text-sm">
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs">
                   <span className="text-gray-600">Plan</span>
                   <span className="font-medium capitalize">
                     {userUsage.plan}
                   </span>
                 </div>
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-xs">
                   <span className="text-gray-600">Used</span>
                   <span className="font-medium">
                     {userUsage.used_minutes} min
                   </span>
                 </div>
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-xs">
                   <span className="text-gray-600">Remaining</span>
                   <span
                     className={`font-medium ${
@@ -741,48 +769,48 @@ export default function FlowUploadPage() {
                   />
                 </div>
                 {userUsage.is_over_limit && (
-                  <p className="text-sm text-red-600 font-medium">
+                  <p className="text-xs text-red-600 font-medium">
                     Monthly limit exceeded
                   </p>
                 )}
               </div>
             ) : (
-              <p className="text-sm text-gray-500">Unable to load usage data</p>
+              <p className="text-xs text-gray-500">Unable to load usage data</p>
             )}
           </div>
 
-          {/* What happens after upload - 50% */}
-          <div className="flex-1 bg-white rounded-xl border border-gray-200 p-6 flex flex-col">
-            <div className="flex items-start space-x-4 mb-4">
+          {/* What happens after upload */}
+          <div className="bg-white rounded-xl border border-gray-200 p-4 flex-1 min-h-0 flex flex-col">
+            <div className="flex items-start space-x-3 mb-3 flex-shrink-0">
               <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
-                <CheckCircle className="h-6 w-6 text-blue-600" />
+                <CheckCircle className="h-5 w-5 text-blue-600" />
               </div>
-              <h3 className="font-semibold text-gray-900">
+              <h3 className="font-semibold text-gray-900 text-sm">
                 What happens next?
               </h3>
             </div>
-            <div className="flex-1 space-y-4 text-sm text-gray-600">
-              <div className="flex items-start space-x-3">
-                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full mt-2 flex-shrink-0"></div>
+            <div className="flex-1 space-y-3 text-xs text-gray-600 overflow-y-auto">
+              <div className="flex items-start space-x-2">
+                <div className="w-1 h-1 bg-emerald-500 rounded-full mt-1.5 flex-shrink-0"></div>
                 <span>
                   Your audio is securely processed using advanced AI
                   transcription
                 </span>
               </div>
-              <div className="flex items-start space-x-3">
-                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full mt-2 flex-shrink-0"></div>
+              <div className="flex items-start space-x-2">
+                <div className="w-1 h-1 bg-emerald-500 rounded-full mt-1.5 flex-shrink-0"></div>
                 <span>
                   Review and edit the generated transcript before proceeding
                 </span>
               </div>
-              <div className="flex items-start space-x-3">
-                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full mt-2 flex-shrink-0"></div>
+              <div className="flex items-start space-x-2">
+                <div className="w-1 h-1 bg-emerald-500 rounded-full mt-1.5 flex-shrink-0"></div>
                 <span>
                   Choose from multiple content formats: notes, posts, articles
                 </span>
               </div>
-              <div className="flex items-start space-x-3">
-                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full mt-2 flex-shrink-0"></div>
+              <div className="flex items-start space-x-2">
+                <div className="w-1 h-1 bg-emerald-500 rounded-full mt-1.5 flex-shrink-0"></div>
                 <span>
                   Download or share your AI-generated content instantly
                 </span>
@@ -790,40 +818,33 @@ export default function FlowUploadPage() {
             </div>
           </div>
 
-          {/* File Requirements & Security - 50% */}
-          <div className="flex-1 bg-white rounded-xl border border-gray-200 p-6 flex flex-col">
-            <div className="flex items-start space-x-4 mb-4">
+          {/* File Requirements & Security */}
+          <div className="bg-white rounded-xl border border-gray-200 p-4 flex-1 min-h-0 flex flex-col">
+            <div className="flex items-start space-x-3 mb-3 flex-shrink-0">
               <div className="p-2 bg-orange-100 rounded-lg flex-shrink-0">
-                <FileAudio className="h-6 w-6 text-orange-600" />
+                <FileAudio className="h-5 w-5 text-orange-600" />
               </div>
-              <h3 className="font-semibold text-gray-900">
+              <h3 className="font-semibold text-gray-900 text-sm">
                 Requirements & Security
               </h3>
             </div>
-            <div className="flex-1 space-y-4 text-sm text-gray-600">
+            <div className="flex-1 space-y-3 text-xs text-gray-600 overflow-y-auto">
               <div>
-                <p className="font-medium text-gray-700 mb-1">
+                <p className="font-medium text-gray-700 mb-1 text-xs">
                   Supported Formats
                 </p>
                 <p>MP3, WAV, M4A, OGG, AAC, WEBM</p>
               </div>
               <div>
-                <p className="font-medium text-gray-700 mb-1">
+                <p className="font-medium text-gray-700 mb-1 text-xs">
                   File Size Limit
                 </p>
                 <p>Maximum 100MB per file</p>
               </div>
               <div>
-                <p className="font-medium text-gray-700 mb-1">
-                  Privacy & Security
+                <p className="font-medium text-gray-700 mb-1 text-xs">
+                  Best Results
                 </p>
-                <p>
-                  Files are encrypted, processed securely, and automatically
-                  deleted after use
-                </p>
-              </div>
-              <div>
-                <p className="font-medium text-gray-700 mb-1">Best Results</p>
                 <p>
                   Clear speech in quiet environments work best for transcription
                 </p>
