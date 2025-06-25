@@ -4,7 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export async function POST(request: NextRequest) {
   try {
-    const { idToken, fullName } = await request.json();
+    const { idToken, fullName, plan = "free" } = await request.json();
 
     if (!idToken) {
       return NextResponse.json(
@@ -51,7 +51,37 @@ export async function POST(request: NextRequest) {
     }
 
     if (existingUser) {
-      // User already exists, just return success
+      // User already exists, check if they have usage tracking
+      const { data: existingUsage } = await supabaseAdmin
+        .from("user_usage")
+        .select("id")
+        .eq("uid", uid)
+        .single();
+
+      if (!existingUsage) {
+        // Create usage tracking for existing user if missing
+        const allowedMinutes =
+          plan === "free"
+            ? 30
+            : plan === "starter"
+            ? 700
+            : plan === "pro"
+            ? 1500
+            : 30;
+
+        await supabaseAdmin.from("user_usage").insert({
+          uid,
+          plan,
+          allowed_minutes: allowedMinutes,
+          used_minutes: 0,
+          cycle_start: new Date(
+            new Date().getFullYear(),
+            new Date().getMonth(),
+            1
+          ),
+        });
+      }
+
       return NextResponse.json({
         success: true,
         message: "User already exists",
@@ -89,6 +119,37 @@ export async function POST(request: NextRequest) {
     }
 
     console.log("✅ User created successfully in Supabase:", newUser);
+
+    // Create user_usage record for the new user
+    const allowedMinutes =
+      plan === "free"
+        ? 30
+        : plan === "starter"
+        ? 700
+        : plan === "pro"
+        ? 1500
+        : 30;
+
+    const { error: usageError } = await supabaseAdmin
+      .from("user_usage")
+      .insert({
+        uid,
+        plan,
+        allowed_minutes: allowedMinutes,
+        used_minutes: 0,
+        cycle_start: new Date(
+          new Date().getFullYear(),
+          new Date().getMonth(),
+          1
+        ),
+      });
+
+    if (usageError) {
+      console.error("❌ Error creating user usage tracking:", usageError);
+      // Don't fail the entire signup if usage tracking fails, but log it
+    } else {
+      console.log("✅ User usage tracking created successfully");
+    }
 
     return NextResponse.json({
       success: true,

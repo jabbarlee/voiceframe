@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth } from "@/lib/firebase-admin";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import {
+  checkUsageLimit,
+  estimateAudioDuration,
+  updateUserUsage,
+} from "@/lib/usage";
 
 export async function POST(request: NextRequest) {
   try {
@@ -63,6 +68,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check usage limits before processing the file
+    const estimatedMinutes = estimateAudioDuration(file.size, file.type);
+    console.log(
+      `🕒 Estimated audio duration: ${estimatedMinutes} minutes (${file.type})`
+    );
+
+    const usageCheck = await checkUsageLimit(uid, estimatedMinutes);
+
+    if (!usageCheck.allowed) {
+      console.log("❌ Usage limit exceeded:", usageCheck.message);
+      return NextResponse.json(
+        {
+          success: false,
+          error: usageCheck.message,
+          errorType: "USAGE_LIMIT_EXCEEDED",
+          usage: usageCheck.usage,
+        },
+        { status: 403 }
+      );
+    }
+
+    console.log(
+      `✅ Usage check passed. User has ${usageCheck.usage?.remaining_minutes} minutes remaining`
+    );
+
     // Validate file type
     const allowedMimeTypes = [
       "audio/mpeg",
@@ -85,12 +115,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file size (max 50MB)
-    const maxSize = 50 * 1024 * 1024; // 50MB in bytes
+    // Validate file size (max 100MB)
+    const maxSize = 100 * 1024 * 1024; // 100MB in bytes
     if (file.size > maxSize) {
       console.log("❌ File too large:", file.size);
       return NextResponse.json(
-        { success: false, error: "File too large. Maximum size is 50MB." },
+        { success: false, error: "File too large. Maximum size is 100MB." },
         { status: 400 }
       );
     }
@@ -164,6 +194,17 @@ export async function POST(request: NextRequest) {
 
     console.log("✅ Upload completed successfully. File ID:", audioFile.id);
 
+    // Update user usage tracking after successful upload
+    console.log(
+      `🔄 Updating user usage: adding ${estimatedMinutes} minutes...`
+    );
+    const usageUpdateSuccess = await updateUserUsage(uid, estimatedMinutes);
+
+    if (!usageUpdateSuccess) {
+      console.warn("⚠️ Failed to update user usage, but upload was successful");
+      // Don't fail the entire upload if usage tracking fails
+    }
+
     return NextResponse.json({
       success: true,
       data: {
@@ -174,6 +215,7 @@ export async function POST(request: NextRequest) {
         publicUrl: audioFile.public_url,
         status: audioFile.status,
         createdAt: audioFile.created_at,
+        estimatedMinutes, // Include for frontend reference
       },
     });
   } catch (error) {

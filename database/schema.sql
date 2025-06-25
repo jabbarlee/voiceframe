@@ -46,6 +46,23 @@ create table learning_content (
   UNIQUE(audio_file_id, uid)
 );
 
+create table user_usage (
+  id uuid primary key default gen_random_uuid(),
+
+  uid text references public.users(uid) on delete cascade, -- Firebase user ID
+
+  plan text not null default 'free', -- 'free', 'starter', 'pro', etc.
+
+  allowed_minutes integer not null default 30, -- total monthly limit
+  used_minutes integer not null default 0,     -- consumed so far
+
+  cycle_start timestamp with time zone not null default date_trunc('month', now()),
+
+  created_at timestamp with time zone default now(),
+  updated_at timestamp with time zone default now()
+);
+
+
 -- Add indexes for learning_content
 CREATE INDEX IF NOT EXISTS idx_learning_content_uid ON learning_content(uid);
 CREATE INDEX IF NOT EXISTS idx_learning_content_audio_file_id ON learning_content(audio_file_id);

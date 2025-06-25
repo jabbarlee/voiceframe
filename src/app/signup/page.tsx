@@ -82,7 +82,7 @@ export default function SignUpPage() {
       const { idToken } = await signUp(formData.email, formData.password);
       console.log("✅ Firebase signup successful");
 
-      // Step 2: Create user in Supabase database
+      // Step 2: Create user in Supabase database with usage tracking
       const supabaseResponse = await fetch("/api/auth/signup", {
         method: "POST",
         headers: {
@@ -91,6 +91,7 @@ export default function SignUpPage() {
         body: JSON.stringify({
           idToken,
           fullName: formData.fullName,
+          plan: "free", // Start with free tier
         }),
         credentials: "include",
       });
@@ -102,7 +103,7 @@ export default function SignUpPage() {
         throw new Error(supabaseData.error || "Failed to create user profile");
       }
 
-      console.log("✅ User profile created in database");
+      console.log("✅ User profile and usage tracking created in database");
 
       // Step 3: Create session using existing session API
       const sessionResponse = await fetch("/api/auth/session", {
@@ -373,7 +374,7 @@ export default function SignUpPage() {
               </h3>
               <ul className="space-y-2">
                 {[
-                  "5 hours of free transcription",
+                  "30 minutes of free transcription",
                   "10 AI content generations",
                   "Access to all basic features",
                   "24/7 support",

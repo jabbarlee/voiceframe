@@ -17,6 +17,7 @@ import {
   Sparkles,
   FileText,
   Mic,
+  Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -37,11 +38,73 @@ export default function FlowUploadPage() {
     null
   );
   const [error, setError] = useState("");
+  const [usageError, setUsageError] = useState<{
+    message: string;
+    usage?: any;
+  } | null>(null);
+  const [userUsage, setUserUsage] = useState<any>(null);
+  const [loadingUsage, setLoadingUsage] = useState(false);
   const [dragActive, setDragActive] = useState(false);
 
   useEffect(() => {
     setTitle("Upload Audio");
   }, [setTitle]);
+
+  // Fetch user usage on component mount
+  useEffect(() => {
+    const fetchUsage = async () => {
+      if (!user) return;
+
+      setLoadingUsage(true);
+      try {
+        const idToken = await getCurrentUserToken();
+        if (!idToken) return;
+
+        const response = await fetch("/api/usage", {
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setUserUsage(data.data);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch usage:", error);
+      } finally {
+        setLoadingUsage(false);
+      }
+    };
+
+    fetchUsage();
+  }, [user]);
+
+  const refreshUsage = async () => {
+    if (!user) return;
+
+    try {
+      const idToken = await getCurrentUserToken();
+      if (!idToken) return;
+
+      const response = await fetch("/api/usage", {
+        headers: {
+          Authorization: `Bearer ${idToken}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setUserUsage(data.data);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to refresh usage:", error);
+    }
+  };
 
   // Accepted audio file types
   const acceptedTypes = [
@@ -67,6 +130,39 @@ export default function FlowUploadPage() {
     return null;
   };
 
+  const estimateFileDuration = (file: File): number => {
+    const megabytes = file.size / (1024 * 1024);
+    // More accurate estimation based on file type
+    let estimatedBitrate = 128; // Default for MP3
+
+    switch (file.type.toLowerCase()) {
+      case "audio/wav":
+        estimatedBitrate = 1411; // Uncompressed WAV
+        break;
+      case "audio/m4a":
+      case "audio/aac":
+        estimatedBitrate = 128; // AAC compression
+        break;
+      case "audio/ogg":
+        estimatedBitrate = 112; // OGG Vorbis
+        break;
+      case "audio/webm":
+        estimatedBitrate = 128; // WebM audio
+        break;
+      case "audio/mpeg":
+      case "audio/mp3":
+      default:
+        estimatedBitrate = 128; // MP3
+        break;
+    }
+
+    const fileSizeBits = file.size * 8;
+    const bitratePerSecond = estimatedBitrate * 1000;
+    const durationMinutes = fileSizeBits / bitratePerSecond / 60;
+
+    return Math.ceil(durationMinutes * 1.1); // 10% buffer
+  };
+
   const handleFileSelect = (file: File) => {
     const validationError = validateFile(file);
     if (validationError) {
@@ -76,6 +172,7 @@ export default function FlowUploadPage() {
 
     setSelectedFile(file);
     setError("");
+    setUsageError(null);
   };
 
   const handleUpload = async () => {
@@ -83,6 +180,7 @@ export default function FlowUploadPage() {
 
     setIsUploading(true);
     setError("");
+    setUsageError(null);
     setUploadProgress({ loaded: 0, total: selectedFile.size, percentage: 0 });
 
     try {
@@ -131,6 +229,8 @@ export default function FlowUploadPage() {
 
               if (response.success && response.data) {
                 console.log("✅ Upload successful. File ID:", response.data.id);
+                // Refresh usage data after successful upload
+                refreshUsage();
                 // Upload successful - redirect to analyze page
                 router.push(`/flow/analyze/${response.data.id}`);
                 resolve();
@@ -141,6 +241,22 @@ export default function FlowUploadPage() {
             } catch (parseError) {
               console.error("❌ Failed to parse response:", parseError);
               reject(new Error("Invalid response from server"));
+            }
+          } else if (xhr.status === 403) {
+            // Handle usage limit exceeded
+            try {
+              const errorResponse = JSON.parse(xhr.responseText);
+              if (errorResponse.errorType === "USAGE_LIMIT_EXCEEDED") {
+                setUsageError({
+                  message: errorResponse.error,
+                  usage: errorResponse.usage,
+                });
+                reject(new Error("Usage limit exceeded"));
+              } else {
+                reject(new Error(errorResponse.error || "Access denied"));
+              }
+            } catch {
+              reject(new Error("Access denied"));
             }
           } else {
             console.error(`❌ Upload failed with status: ${xhr.status}`);
@@ -475,6 +591,59 @@ export default function FlowUploadPage() {
                   </div>
                 )}
 
+                {/* Usage Error Display */}
+                {usageError && (
+                  <div className="mb-8 p-8 bg-amber-50 border border-amber-200 rounded-xl">
+                    <div className="flex items-start space-x-4">
+                      <AlertCircle className="h-8 w-8 text-amber-600 flex-shrink-0" />
+                      <div className="flex-1">
+                        <p className="font-medium text-amber-800 text-lg">
+                          Usage Limit Reached
+                        </p>
+                        <p className="text-amber-700 mt-1 mb-4">
+                          {usageError.message}
+                        </p>
+                        {usageError.usage && (
+                          <div className="space-y-2 text-sm text-amber-700">
+                            <p>
+                              <span className="font-medium">Current Plan:</span>{" "}
+                              {usageError.usage.plan}
+                            </p>
+                            <p>
+                              <span className="font-medium">
+                                Monthly Limit:
+                              </span>{" "}
+                              {usageError.usage.allowed_minutes} minutes
+                            </p>
+                            <p>
+                              <span className="font-medium">Used:</span>{" "}
+                              {usageError.usage.used_minutes} minutes
+                            </p>
+                            <p>
+                              <span className="font-medium">Remaining:</span>{" "}
+                              {usageError.usage.remaining_minutes} minutes
+                            </p>
+                          </div>
+                        )}
+                        <div className="mt-4 flex space-x-3">
+                          <Button
+                            onClick={() => router.push("/pricing")}
+                            className="bg-emerald-600 hover:bg-emerald-700"
+                          >
+                            Upgrade Plan
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => setUsageError(null)}
+                          >
+                            Dismiss
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Error Display */}
                 {error && (
                   <div className="mb-8 p-8 bg-red-50 border border-red-200 rounded-xl">
@@ -498,6 +667,7 @@ export default function FlowUploadPage() {
                     onClick={() => {
                       setSelectedFile(null);
                       setError("");
+                      setUsageError(null);
                     }}
                     disabled={isUploading}
                     className="px-4 py-2"
@@ -512,6 +682,75 @@ export default function FlowUploadPage() {
 
         {/* Right Side - Info Section */}
         <div className="w-72 flex-shrink-0 flex flex-col gap-6 min-h-0">
+          {/* Usage Status */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <div className="flex items-start space-x-4 mb-4">
+              <div className="p-2 bg-emerald-100 rounded-lg flex-shrink-0">
+                <Clock className="h-6 w-6 text-emerald-600" />
+              </div>
+              <h3 className="font-semibold text-gray-900">Usage This Month</h3>
+            </div>
+            {loadingUsage ? (
+              <div className="flex items-center space-x-2 text-gray-500">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-sm">Loading usage...</span>
+              </div>
+            ) : userUsage ? (
+              <div className="space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Plan</span>
+                  <span className="font-medium capitalize">
+                    {userUsage.plan}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Used</span>
+                  <span className="font-medium">
+                    {userUsage.used_minutes} min
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Remaining</span>
+                  <span
+                    className={`font-medium ${
+                      userUsage.remaining_minutes < 10
+                        ? "text-red-600"
+                        : "text-emerald-600"
+                    }`}
+                  >
+                    {userUsage.remaining_minutes} min
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className={`h-2 rounded-full transition-all duration-300 ${
+                      userUsage.used_minutes / userUsage.allowed_minutes > 0.8
+                        ? "bg-red-500"
+                        : userUsage.used_minutes / userUsage.allowed_minutes >
+                          0.6
+                        ? "bg-yellow-500"
+                        : "bg-emerald-500"
+                    }`}
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        (userUsage.used_minutes / userUsage.allowed_minutes) *
+                          100
+                      )}%`,
+                    }}
+                  />
+                </div>
+                {userUsage.is_over_limit && (
+                  <p className="text-sm text-red-600 font-medium">
+                    Monthly limit exceeded
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">Unable to load usage data</p>
+            )}
+          </div>
+
           {/* What happens after upload - 50% */}
           <div className="flex-1 bg-white rounded-xl border border-gray-200 p-6 flex flex-col">
             <div className="flex items-start space-x-4 mb-4">
