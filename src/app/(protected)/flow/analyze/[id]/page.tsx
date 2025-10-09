@@ -8,20 +8,15 @@ import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   FileAudio,
-  Clock,
   Database,
   Loader2,
   CheckCircle,
   Pause,
-  Play,
   Download,
   Calendar,
   HardDrive,
   Type,
   Sparkles,
-  Upload,
-  FileText,
-  Mic,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 

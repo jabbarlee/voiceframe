@@ -18,67 +18,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const stats = [
-  {
-    name: "Total Files",
-    value: "0",
-    change: "+0%",
-    changeType: "neutral",
-    icon: FileAudio,
-    color: "slate",
-  },
-  {
-    name: "Completed",
-    value: "0",
-    change: "+0%",
-    changeType: "neutral",
-    icon: CheckCircle,
-    color: "green",
-  },
-  {
-    name: "Processing",
-    value: "0",
-    change: "+0%",
-    changeType: "neutral",
-    icon: Loader2,
-    color: "blue",
-  },
-  {
-    name: "Content Generated",
-    value: "0",
-    change: "+0%",
-    changeType: "neutral",
-    icon: Zap,
-    color: "emerald",
-  },
-];
-
-const recentActivity = [
-  {
-    id: 1,
-    type: "upload",
-    title: "lecture-notes.mp3",
-    time: "2 hours ago",
-    status: "completed",
-    size: "15.2 MB",
-  },
-  {
-    id: 2,
-    type: "processing",
-    title: "meeting-recording.wav",
-    time: "4 hours ago",
-    status: "processing",
-    size: "28.5 MB",
-  },
-  {
-    id: 3,
-    type: "content",
-    title: "podcast-episode-12.mp3",
-    time: "1 day ago",
-    status: "completed",
-    size: "45.1 MB",
-  },
-];
 
 export default function DashboardPage() {
   const { user } = useAuth();

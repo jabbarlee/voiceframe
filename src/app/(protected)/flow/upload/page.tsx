@@ -15,7 +15,6 @@ import {
   ArrowRight,
   ArrowLeft,
   Sparkles,
-  FileText,
   Mic,
   Clock,
 } from "lucide-react";
