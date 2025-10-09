@@ -5,15 +5,11 @@ import { usePageTitle } from "@/components/layout/PageTitleProvider";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  BarChart3,
   FileAudio,
   Upload,
-  TrendingUp,
-  Clock,
   Zap,
   CheckCircle,
   Loader2,
-  Plus,
   ArrowRight,
   Music,
   Brain,
@@ -21,7 +17,6 @@ import {
   BookOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getCurrentUserToken } from "@/lib/auth";
 
 const stats = [
   {

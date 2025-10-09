@@ -22,13 +22,13 @@ export function Hero() {
       <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 lg:py-32 relative z-10 flex flex-col items-center justify-center text-center min-h-[80vh]">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl leading-tight">
-            Turn Your Voice Into <br />
+            Turn Your Audio Files Into <br />
             <span className="bg-gradient-to-r from-emerald-500 via-emerald-600 to-emerald-500 bg-clip-text text-transparent">
-              Publish-Ready Content
+              Ready to use studying content
             </span>
           </h1>
           <p className="mx-auto mt-6 max-w-3xl text-lg text-muted-foreground sm:text-xl leading-relaxed">
-            Transform audio files into polished articles, social posts, and more
+            Transform audio files into polished study packs, articles, and more
             with AI-powered transcription and content generation.
           </p>
           <div className="mt-10 flex flex-col gap-4 sm:flex-row justify-center">
