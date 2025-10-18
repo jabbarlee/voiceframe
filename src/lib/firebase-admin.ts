@@ -1,5 +1,10 @@
 import * as admin from "firebase-admin";
 
+// Handle SSL certificate issues in development
+if (process.env.NODE_ENV === "development") {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+}
+
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert({
