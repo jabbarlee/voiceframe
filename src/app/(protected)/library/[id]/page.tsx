@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PDFDownloadButton } from "@/components/ui/PDFDownloadButton";
+import { ContentPreviewModal } from "@/components/ui/ContentPreviewModal";
 import "reactflow/dist/style.css";
 import { getCurrentUserToken } from "@/lib/auth";
 
@@ -107,6 +108,9 @@ export default function ContentGenerationPage() {
   const [showAnswer, setShowAnswer] = useState(false);
   const [selectedTemplate, setSelectedTemplate] =
     useState<StudyPackTemplate>("academic");
+
+  // Preview modal state
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
 
   // Data fetching state
   const [contentData, setContentData] = useState<ContentData | null>(null);
@@ -1084,7 +1088,11 @@ export default function ContentGenerationPage() {
                           </p>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <Button variant="outline" size="sm">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setIsPreviewModalOpen(true)}
+                          >
                             <Eye className="h-4 w-4 mr-2" />
                             Full Preview
                           </Button>
@@ -1217,6 +1225,17 @@ export default function ContentGenerationPage() {
           )}
         </div>
       </div>
+
+      {/* Content Preview Modal */}
+      {contentData && (
+        <ContentPreviewModal
+          isOpen={isPreviewModalOpen}
+          onClose={() => setIsPreviewModalOpen(false)}
+          contentData={contentData}
+          selectedTemplate={selectedTemplate}
+          summaryTone={summaryTone}
+        />
+      )}
     </div>
   );
 }
