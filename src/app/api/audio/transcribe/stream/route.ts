@@ -8,6 +8,7 @@ import {
   getRecommendedModel,
   type TranscriptionOptions,
 } from "@/lib/openai-transcription";
+import { downloadAudioFile } from "@/lib/storage-utils";
 
 /**
  * POST /api/audio/transcribe/stream
@@ -86,25 +87,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Download the audio file
-    if (!audioFile.public_url) {
-      console.log("❌ No public URL available for audio file");
-      return NextResponse.json(
-        { success: false, error: "Audio file not accessible" },
-        { status: 400 }
-      );
-    }
+    // Download the audio file from storage using Supabase API
+    console.log("📥 Downloading audio file from storage...");
 
-    const audioResponse = await fetch(audioFile.public_url);
-    if (!audioResponse.ok) {
-      console.log("❌ Failed to download audio file:", audioResponse.status);
+    let audioBuffer: Buffer;
+    try {
+      audioBuffer = await downloadAudioFile(audioFile);
+      console.log(`📁 Downloaded audio file: ${audioBuffer.length} bytes`);
+    } catch (downloadError) {
+      console.log("❌ Failed to download audio file:", downloadError);
       return NextResponse.json(
-        { success: false, error: "Failed to download audio file" },
+        { success: false, error: "Failed to access audio file from storage" },
         { status: 500 }
       );
     }
-
-    const audioBuffer = Buffer.from(await audioResponse.arrayBuffer());
 
     // Update status to processing
     await supabaseAdmin

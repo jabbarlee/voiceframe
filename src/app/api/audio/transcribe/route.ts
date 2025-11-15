@@ -1,20 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth } from "@/lib/firebase-admin";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { 
-  transcribeAudio, 
-  validateFileForTranscription, 
+import {
+  transcribeAudio,
+  validateFileForTranscription,
   estimateTranscriptionCost,
   TRANSCRIPTION_MODELS,
   getRecommendedModel,
-  type TranscriptionOptions 
+  type TranscriptionOptions,
 } from "@/lib/openai-transcription";
-import { 
-  checkCostLimit, 
-  updateCostTracking, 
+import {
+  checkCostLimit,
+  updateCostTracking,
   getUserPlan,
-  logCostEntry 
+  logCostEntry,
 } from "@/lib/cost-tracking";
+import { downloadAudioFile } from "@/lib/storage-utils";
 
 /**
  * POST /api/audio/transcribe
@@ -149,6 +150,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Estimate cost before processing
+    const userPlan = await getUserPlan(uid);
     const model = getRecommendedModel({
       prioritizeCost: true,
       needsHighQuality: options.high_quality || false,
@@ -162,31 +164,44 @@ export async function POST(request: NextRequest) {
     );
 
     console.log("💰 Cost estimate:", costEstimate);
+    console.log("👤 User plan:", userPlan);
 
-    // Download the audio file from storage
+    // Check cost limits
+    const costCheck = await checkCostLimit(
+      uid,
+      costEstimate.estimatedCostUSD,
+      userPlan
+    );
+
+    if (!costCheck.allowed) {
+      console.log("❌ Cost limit exceeded:", costCheck.message);
+      return NextResponse.json(
+        {
+          success: false,
+          error: costCheck.message,
+          errorType: "COST_LIMIT_EXCEEDED",
+          costEstimate,
+          costTracking: costCheck.costTracking,
+        },
+        { status: 402 } // Payment Required
+      );
+    }
+
+    console.log("✅ Cost check passed");
+
+    // Download the audio file from storage using Supabase API
     console.log("📥 Downloading audio file from storage...");
 
-    if (!audioFile.public_url) {
-      console.log("❌ No public URL available for audio file");
+    try {
+      var audioBuffer = await downloadAudioFile(audioFile);
+      console.log(`📁 Downloaded audio file: ${audioBuffer.length} bytes`);
+    } catch (downloadError) {
+      console.log("❌ Failed to download audio file:", downloadError);
       return NextResponse.json(
-        { success: false, error: "Audio file not accessible" },
-        { status: 400 }
-      );
-    }
-
-    const audioResponse = await fetch(audioFile.public_url);
-    if (!audioResponse.ok) {
-      console.log("❌ Failed to download audio file:", audioResponse.status);
-      return NextResponse.json(
-        { success: false, error: "Failed to download audio file" },
+        { success: false, error: "Failed to access audio file from storage" },
         { status: 500 }
       );
-    }
-
-    const audioBuffer = Buffer.from(await audioResponse.arrayBuffer());
-    console.log(`📁 Downloaded audio file: ${audioBuffer.length} bytes`);
-
-    // Update audio file status to processing
+    } // Update audio file status to processing
     await supabaseAdmin
       .from("audio_files")
       .update({ status: "processing" })
@@ -268,6 +283,19 @@ export async function POST(request: NextRequest) {
       .eq("id", audio_file_id);
 
     console.log("✅ Transcript saved successfully:", savedTranscript.id);
+
+    // Update cost tracking after successful transcription
+    const actualCost = costEstimate.estimatedCostUSD; // In real scenario, could be more accurate
+    await updateCostTracking(uid, actualCost, savedTranscript.id);
+
+    // Log detailed cost entry
+    await logCostEntry(uid, actualCost, "transcription", savedTranscript.id, {
+      model: model,
+      file_size_mb: costEstimate.fileSizeMB,
+      estimated_minutes: costEstimate.estimatedMinutes,
+      word_count: wordCount,
+      processing_time_ms: processingTime,
+    });
 
     // Return the result
     return NextResponse.json({

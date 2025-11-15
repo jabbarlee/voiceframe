@@ -177,29 +177,29 @@ export default function AudioTranscriptionPage() {
             if (done) break;
 
             const chunk = decoder.decode(value);
-            const lines = chunk.split('\n');
+            const lines = chunk.split("\n");
 
             for (const line of lines) {
-              if (line.startsWith('data: ')) {
+              if (line.startsWith("data: ")) {
                 try {
                   const data = JSON.parse(line.slice(6));
-                  
+
                   switch (data.type) {
-                    case 'progress':
+                    case "progress":
                       setTranscriptionProgress(data.progress);
                       break;
-                    case 'chunk':
+                    case "chunk":
                       // Append chunk to current transcript
-                      setCurrentTranscript(prev => prev + data.chunk);
+                      setCurrentTranscript((prev) => prev + data.chunk);
                       break;
-                    case 'complete':
+                    case "complete":
                       setTranscriptionData(data.transcript);
                       setCurrentTranscript(data.transcript.text);
                       setTranscriptionProgress(100);
                       setIsTranscribing(false);
                       console.log("✅ Streaming transcription completed");
                       return;
-                    case 'error':
+                    case "error":
                       throw new Error(data.error);
                   }
                 } catch (parseError) {
@@ -235,13 +235,12 @@ export default function AudioTranscriptionPage() {
         }
 
         console.log("✅ Transcription completed successfully");
-        
+
         setTranscriptionData(data.data);
         setCurrentTranscript(data.data.text);
         setTranscriptionProgress(100);
         setIsTranscribing(false);
       }
-
     } catch (error: any) {
       console.error("❌ Transcription error:", error);
       setTranscriptionError(error.message || "Transcription failed");
@@ -249,8 +248,10 @@ export default function AudioTranscriptionPage() {
       setTranscriptionProgress(0);
 
       // If streaming failed, try regular transcription
-      if (useStreaming && error.message.includes('stream')) {
-        console.log("🔄 Streaming failed, falling back to regular transcription...");
+      if (useStreaming && error.message.includes("stream")) {
+        console.log(
+          "🔄 Streaming failed, falling back to regular transcription..."
+        );
         setTimeout(() => startTranscription(audioFile, token, false), 1000);
       }
     }

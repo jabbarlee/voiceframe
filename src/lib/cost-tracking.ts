@@ -16,33 +16,35 @@ export interface UserCostTracking {
 
 export interface CostLimits {
   monthlyLimit: number; // USD
-  dailyLimit: number; // USD  
+  dailyLimit: number; // USD
   perCallLimit: number; // USD
 }
 
 // Default cost limits based on plan type
 export const COST_LIMITS: Record<string, CostLimits> = {
   free: {
-    monthlyLimit: 5.00, // $5/month for free tier
-    dailyLimit: 1.00,   // $1/day
-    perCallLimit: 0.50, // $0.50 per transcription
+    monthlyLimit: 5.0, // $5/month for free tier
+    dailyLimit: 1.0, // $1/day
+    perCallLimit: 0.5, // $0.50 per transcription
   },
   pro: {
-    monthlyLimit: 50.00, // $50/month for pro tier  
-    dailyLimit: 5.00,    // $5/day
-    perCallLimit: 2.00,  // $2 per transcription
+    monthlyLimit: 50.0, // $50/month for pro tier
+    dailyLimit: 5.0, // $5/day
+    perCallLimit: 2.0, // $2 per transcription
   },
   enterprise: {
-    monthlyLimit: 500.00, // $500/month for enterprise
-    dailyLimit: 50.00,    // $50/day
-    perCallLimit: 10.00,  // $10 per transcription
+    monthlyLimit: 500.0, // $500/month for enterprise
+    dailyLimit: 50.0, // $50/day
+    perCallLimit: 10.0, // $10 per transcription
   },
 };
 
 /**
  * Get user's current cost tracking information
  */
-export async function getUserCostTracking(uid: string): Promise<UserCostTracking | null> {
+export async function getUserCostTracking(
+  uid: string
+): Promise<UserCostTracking | null> {
   try {
     const { data: costRecord, error } = await supabaseAdmin
       .from("user_cost_tracking")
@@ -58,7 +60,7 @@ export async function getUserCostTracking(uid: string): Promise<UserCostTracking
     if (!costRecord) {
       // Create default cost tracking record
       console.log("🔄 Creating default cost tracking record for user:", uid);
-      
+
       const cycleStart = new Date(
         new Date().getFullYear(),
         new Date().getMonth(),
@@ -92,14 +94,15 @@ export async function getUserCostTracking(uid: string): Promise<UserCostTracking
     // Check if we need to reset monthly costs (new billing cycle)
     const cycleStart = new Date(costRecord.cycle_start);
     const now = new Date();
-    const shouldReset = now.getMonth() !== cycleStart.getMonth() || 
-                       now.getFullYear() !== cycleStart.getFullYear();
+    const shouldReset =
+      now.getMonth() !== cycleStart.getMonth() ||
+      now.getFullYear() !== cycleStart.getFullYear();
 
     if (shouldReset) {
       console.log("🔄 Resetting monthly cost tracking for new billing cycle");
-      
+
       const newCycleStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      
+
       const { data: updatedRecord, error: updateError } = await supabaseAdmin
         .from("user_cost_tracking")
         .update({
@@ -121,7 +124,6 @@ export async function getUserCostTracking(uid: string): Promise<UserCostTracking
     }
 
     return costRecord;
-
   } catch (error) {
     console.error("❌ Error in getUserCostTracking:", error);
     return null;
@@ -132,7 +134,7 @@ export async function getUserCostTracking(uid: string): Promise<UserCostTracking
  * Check if user can afford the estimated cost for transcription
  */
 export async function checkCostLimit(
-  uid: string, 
+  uid: string,
   estimatedCostUSD: number,
   userPlan = "free"
 ): Promise<{
@@ -142,7 +144,7 @@ export async function checkCostLimit(
 }> {
   try {
     const costTracking = await getUserCostTracking(uid);
-    
+
     if (!costTracking) {
       return {
         allowed: false,
@@ -158,21 +160,31 @@ export async function checkCostLimit(
       return {
         allowed: false,
         costTracking,
-        message: `This transcription would cost $${estimatedCostUSD.toFixed(4)}, which exceeds the per-request limit of $${limits.perCallLimit} for your plan.`,
+        message: `This transcription would cost $${estimatedCostUSD.toFixed(
+          4
+        )}, which exceeds the per-request limit of $${
+          limits.perCallLimit
+        } for your plan.`,
       };
     }
 
     // Check monthly limit
-    if (costTracking.monthly_cost_usd + estimatedCostUSD > limits.monthlyLimit) {
+    if (
+      costTracking.monthly_cost_usd + estimatedCostUSD >
+      limits.monthlyLimit
+    ) {
       return {
         allowed: false,
         costTracking,
-        message: `This would exceed your monthly cost limit of $${limits.monthlyLimit}. Current usage: $${costTracking.monthly_cost_usd.toFixed(4)}`,
+        message: `This would exceed your monthly cost limit of $${
+          limits.monthlyLimit
+        }. Current usage: $${costTracking.monthly_cost_usd.toFixed(4)}`,
       };
     }
 
     // Check daily limit (rough approximation - would need daily tracking for precise check)
-    const estimatedDailyCost = costTracking.monthly_cost_usd / new Date().getDate() + estimatedCostUSD;
+    const estimatedDailyCost =
+      costTracking.monthly_cost_usd / new Date().getDate() + estimatedCostUSD;
     if (estimatedDailyCost > limits.dailyLimit) {
       return {
         allowed: false,
@@ -185,7 +197,6 @@ export async function checkCostLimit(
       allowed: true,
       costTracking,
     };
-
   } catch (error) {
     console.error("❌ Error in checkCostLimit:", error);
     return {
@@ -206,7 +217,7 @@ export async function updateCostTracking(
 ): Promise<boolean> {
   try {
     const costTracking = await getUserCostTracking(uid);
-    
+
     if (!costTracking) {
       console.error("❌ Cannot update cost tracking - no record found");
       return false;
@@ -235,9 +246,12 @@ export async function updateCostTracking(
       await logCostEntry(uid, actualCostUSD, "transcription", transcriptionId);
     }
 
-    console.log(`✅ Updated cost tracking: +$${actualCostUSD.toFixed(4)} (monthly: $${(costTracking.monthly_cost_usd + actualCostUSD).toFixed(4)})`);
+    console.log(
+      `✅ Updated cost tracking: +$${actualCostUSD.toFixed(4)} (monthly: $${(
+        costTracking.monthly_cost_usd + actualCostUSD
+      ).toFixed(4)})`
+    );
     return true;
-
   } catch (error) {
     console.error("❌ Error in updateCostTracking:", error);
     return false;
@@ -255,16 +269,14 @@ export async function logCostEntry(
   metadata?: any
 ): Promise<boolean> {
   try {
-    const { error } = await supabaseAdmin
-      .from("cost_log")
-      .insert({
-        uid,
-        cost_usd: costUSD,
-        service,
-        reference_id: referenceId,
-        metadata: metadata ? JSON.stringify(metadata) : null,
-        created_at: new Date().toISOString(),
-      });
+    const { error } = await supabaseAdmin.from("cost_log").insert({
+      uid,
+      cost_usd: costUSD,
+      service,
+      reference_id: referenceId,
+      metadata: metadata ? JSON.stringify(metadata) : null,
+      created_at: new Date().toISOString(),
+    });
 
     if (error) {
       console.error("❌ Error logging cost entry:", error);
@@ -272,7 +284,6 @@ export async function logCostEntry(
     }
 
     return true;
-
   } catch (error) {
     console.error("❌ Error in logCostEntry:", error);
     return false;
@@ -296,7 +307,6 @@ export async function getUserPlan(uid: string): Promise<string> {
     }
 
     return usage.plan || "free";
-
   } catch (error) {
     console.error("❌ Error getting user plan:", error);
     return "free";
@@ -317,7 +327,7 @@ export async function getCostSummary(uid: string): Promise<{
   try {
     const [costTracking, userPlan] = await Promise.all([
       getUserCostTracking(uid),
-      getUserPlan(uid)
+      getUserPlan(uid),
     ]);
 
     const limits = COST_LIMITS[userPlan] || COST_LIMITS.free;
@@ -332,7 +342,6 @@ export async function getCostSummary(uid: string): Promise<{
       limits,
       utilizationPercent: Math.min(utilizationPercent, 100),
     };
-
   } catch (error) {
     console.error("❌ Error generating cost summary:", error);
     return {
