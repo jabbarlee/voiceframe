@@ -13,17 +13,45 @@ export interface UserUsage {
 
 export async function getUserUsage(uid: string): Promise<UserUsage | null> {
   try {
+    console.log("📊 Getting usage for user:", uid);
+
+    // Validate Supabase connection first
+    if (
+      !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+      !process.env.SUPABASE_SERVICE_ROLE_KEY
+    ) {
+      console.error("❌ Missing Supabase environment variables");
+      return null;
+    }
+
     // Get all usage records for this user, ordered by created_at desc
-    const { data: usageRecords, error } = await supabaseAdmin
+    // Add timeout to prevent hanging requests
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Supabase request timeout")), 10000)
+    );
+
+    const queryPromise = supabaseAdmin
       .from("user_usage")
       .select("*")
       .eq("uid", uid)
       .order("created_at", { ascending: false });
 
+    const { data: usageRecords, error } = (await Promise.race([
+      queryPromise,
+      timeoutPromise,
+    ])) as any;
+
     if (error) {
-      console.error("❌ Error fetching user usage:", error);
+      console.error("❌ Supabase error fetching user usage:", {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+      });
       return null;
     }
+
+    console.log(`📊 Found ${usageRecords?.length || 0} usage records`);
 
     let usage = null;
 
@@ -63,7 +91,9 @@ export async function getUserUsage(uid: string): Promise<UserUsage | null> {
         console.log(
           `🔄 Found ${usageRecords.length} duplicate usage records for user ${uid}, cleaning up...`
         );
-        const duplicateIds = usageRecords.slice(1).map((record) => record.id);
+        const duplicateIds = usageRecords
+          .slice(1)
+          .map((record: any) => record.id);
 
         const { error: deleteError } = await supabaseAdmin
           .from("user_usage")

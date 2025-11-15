@@ -408,11 +408,29 @@ export default function FlowUploadPage() {
             <div className="flex items-center space-x-8">
               {/* Step 1 - Current */}
               <div className="flex items-center space-x-3">
-                <div className="flex items-center justify-center w-8 h-8 bg-emerald-600 rounded-full">
-                  <Upload className="w-5 h-5 text-white" />
+                <div
+                  className={`flex items-center justify-center w-8 h-8 rounded-full transition-all duration-200 ${
+                    isUploading
+                      ? "bg-blue-600"
+                      : selectedFile
+                      ? "bg-emerald-600"
+                      : "bg-emerald-600"
+                  }`}
+                >
+                  {isUploading ? (
+                    <Loader2 className="w-5 h-5 text-white animate-spin" />
+                  ) : (
+                    <Upload className="w-5 h-5 text-white" />
+                  )}
                 </div>
                 <div className="text-sm">
-                  <div className="font-medium text-emerald-600">Upload</div>
+                  <div
+                    className={`font-medium transition-colors duration-200 ${
+                      isUploading ? "text-blue-600" : "text-emerald-600"
+                    }`}
+                  >
+                    {isUploading ? "Uploading" : "Upload"}
+                  </div>
                 </div>
               </div>
 
@@ -432,15 +450,27 @@ export default function FlowUploadPage() {
 
             {/* Right side - Upload button */}
             <div className="flex items-center space-x-3">
+              {isUploading && uploadProgress && (
+                <div className="text-sm text-gray-600">
+                  <span className="font-medium">
+                    {uploadProgress.percentage}%
+                  </span>
+                </div>
+              )}
               <Button
                 onClick={handleUpload}
                 disabled={!selectedFile || isUploading}
-                className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed flex items-center space-x-2"
+                className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 disabled:text-gray-600 disabled:cursor-not-allowed disabled:opacity-60 flex items-center space-x-2 transition-all duration-200"
               >
                 {isUploading ? (
                   <>
                     <Loader2 className="h-5 w-5 animate-spin" />
                     <span>Uploading...</span>
+                  </>
+                ) : !selectedFile ? (
+                  <>
+                    <Upload className="h-5 w-5" />
+                    <span>Select File First</span>
                   </>
                 ) : (
                   <>
@@ -555,14 +585,16 @@ export default function FlowUploadPage() {
 
                 <div
                   className={`relative flex-1 m-6 mt-3 flex flex-col justify-center items-center text-center border-2 border-dashed rounded-xl transition-all duration-200 ${
-                    dragActive
+                    isUploading
+                      ? "border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed"
+                      : dragActive
                       ? "border-emerald-500 bg-emerald-50 scale-[1.02]"
                       : "border-gray-300 hover:border-emerald-400 hover:bg-emerald-50/50"
                   }`}
-                  onDragEnter={handleDragIn}
-                  onDragLeave={handleDragOut}
-                  onDragOver={handleDrag}
-                  onDrop={handleDrop}
+                  onDragEnter={isUploading ? undefined : handleDragIn}
+                  onDragLeave={isUploading ? undefined : handleDragOut}
+                  onDragOver={isUploading ? undefined : handleDrag}
+                  onDrop={isUploading ? undefined : handleDrop}
                 >
                   <div className="mb-8">
                     <Upload className="h-20 w-20 text-gray-400 mx-auto" />
@@ -695,9 +727,11 @@ export default function FlowUploadPage() {
                       setUsageError(null);
                     }}
                     disabled={isUploading}
-                    className="px-4 py-2"
+                    className="px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Choose Different File
+                    {isUploading
+                      ? "Uploading in progress..."
+                      : "Choose Different File"}
                   </Button>
                 </div>
               </div>
