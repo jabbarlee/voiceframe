@@ -60,18 +60,25 @@ export async function getUserUsage(uid: string): Promise<UserUsage | null> {
 
       // If there are duplicates, clean them up (keep the most recent)
       if (usageRecords.length > 1) {
-        console.log(`🔄 Found ${usageRecords.length} duplicate usage records for user ${uid}, cleaning up...`);
-        const duplicateIds = usageRecords.slice(1).map(record => record.id);
-        
+        console.log(
+          `🔄 Found ${usageRecords.length} duplicate usage records for user ${uid}, cleaning up...`
+        );
+        const duplicateIds = usageRecords.slice(1).map((record) => record.id);
+
         const { error: deleteError } = await supabaseAdmin
           .from("user_usage")
           .delete()
           .in("id", duplicateIds);
 
         if (deleteError) {
-          console.error("❌ Error cleaning up duplicate usage records:", deleteError);
+          console.error(
+            "❌ Error cleaning up duplicate usage records:",
+            deleteError
+          );
         } else {
-          console.log(`✅ Cleaned up ${duplicateIds.length} duplicate usage records`);
+          console.log(
+            `✅ Cleaned up ${duplicateIds.length} duplicate usage records`
+          );
         }
       }
     }

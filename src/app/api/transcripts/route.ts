@@ -58,10 +58,18 @@ export async function POST(request: NextRequest) {
       .select("id, uid")
       .eq("id", audio_file_id)
       .eq("uid", uid)
-      .single();
+      .maybeSingle(); // Use maybeSingle() to handle potential issues
 
-    if (audioError || !audioFile) {
-      console.log("❌ Audio file not found or not owned by user:", audioError);
+    if (audioError) {
+      console.log("❌ Database error checking audio file:", audioError);
+      return NextResponse.json(
+        { success: false, error: "Database error" },
+        { status: 500 }
+      );
+    }
+
+    if (!audioFile) {
+      console.log("❌ Audio file not found or not owned by user");
       return NextResponse.json(
         { success: false, error: "Audio file not found or access denied" },
         { status: 404 }
@@ -80,10 +88,9 @@ export async function POST(request: NextRequest) {
       .from("transcripts")
       .select("id")
       .eq("audio_file_id", audio_file_id)
-      .single();
+      .maybeSingle(); // Use maybeSingle() for cleaner handling
 
-    if (checkError && checkError.code !== "PGRST116") {
-      // PGRST116 = no rows returned
+    if (checkError) {
       console.log("❌ Error checking existing transcript:", checkError);
       return NextResponse.json(
         { success: false, error: "Database error" },

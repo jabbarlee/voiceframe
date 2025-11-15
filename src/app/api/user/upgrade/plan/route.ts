@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth } from "@/lib/firebase-admin";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { getUserUsage } from "@/lib/usage";
 
 const PLAN_CONFIGS = {
   free: { allowed_minutes: 30 },
@@ -46,15 +47,11 @@ export async function POST(request: NextRequest) {
 
     const { uid } = decodedToken;
 
-    // Get current user usage
-    const { data: currentUsage, error: fetchError } = await supabaseAdmin
-      .from("user_usage")
-      .select("*")
-      .eq("uid", uid)
-      .single();
+    // Get current user usage (this will create one if it doesn't exist)
+    const currentUsage = await getUserUsage(uid);
 
-    if (fetchError || !currentUsage) {
-      console.error("❌ Error fetching current usage:", fetchError);
+    if (!currentUsage) {
+      console.error("❌ Error fetching or creating current usage");
       return NextResponse.json(
         { success: false, error: "Failed to fetch current usage" },
         { status: 500 }
@@ -83,13 +80,21 @@ export async function POST(request: NextRequest) {
       })
       .eq("uid", uid)
       .select()
-      .single();
+      .maybeSingle(); // Use maybeSingle() for more robust error handling
 
-    if (updateError || !updatedUsage) {
+    if (updateError) {
       console.error("❌ Error updating plan:", updateError);
       return NextResponse.json(
         { success: false, error: "Failed to update plan" },
         { status: 500 }
+      );
+    }
+
+    if (!updatedUsage) {
+      console.error("❌ No usage record found to update");
+      return NextResponse.json(
+        { success: false, error: "Usage record not found" },
+        { status: 404 }
       );
     }
 

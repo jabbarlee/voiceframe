@@ -56,7 +56,6 @@ export async function GET(
         { success: false, error: "Audio file not found" },
         { status: 404 }
       );
-      );
     }
 
     return NextResponse.json({

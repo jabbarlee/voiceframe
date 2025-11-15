@@ -61,19 +61,20 @@ export async function GET(
       )
       .eq("id", params.id)
       .eq("uid", uid)
-      .single();
+      .maybeSingle(); // Use maybeSingle() to handle potential issues
 
     if (error) {
-      if (error.code === "PGRST116") {
-        return NextResponse.json(
-          { success: false, error: "Transcript not found" },
-          { status: 404 }
-        );
-      }
-      console.log("❌ Error fetching transcript:", error);
+      console.error("❌ Database error:", error);
       return NextResponse.json(
-        { success: false, error: "Failed to fetch transcript" },
+        { success: false, error: "Database error" },
         { status: 500 }
+      );
+    }
+
+    if (!data) {
+      return NextResponse.json(
+        { success: false, error: "Transcript not found" },
+        { status: 404 }
       );
     }
 
@@ -147,19 +148,20 @@ export async function PUT(
       .eq("id", params.id)
       .eq("uid", uid)
       .select()
-      .single();
+      .maybeSingle(); // Use maybeSingle() for more robust error handling
 
     if (error) {
-      if (error.code === "PGRST116") {
-        return NextResponse.json(
-          { success: false, error: "Transcript not found" },
-          { status: 404 }
-        );
-      }
       console.log("❌ Error updating transcript:", error);
       return NextResponse.json(
         { success: false, error: "Failed to update transcript" },
         { status: 500 }
+      );
+    }
+
+    if (!data) {
+      return NextResponse.json(
+        { success: false, error: "Transcript not found" },
+        { status: 404 }
       );
     }
 

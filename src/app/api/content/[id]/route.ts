@@ -41,10 +41,18 @@ export async function GET(
       .select("id, uid, original_filename, status")
       .eq("id", audioId)
       .eq("uid", uid)
-      .single();
+      .maybeSingle(); // Use maybeSingle() to handle potential issues
 
-    if (audioError || !audioFile) {
-      console.error("❌ Audio file not found or access denied:", audioError);
+    if (audioError) {
+      console.error("❌ Database error checking audio file:", audioError);
+      return NextResponse.json(
+        { success: false, error: "Database error" },
+        { status: 500 }
+      );
+    }
+
+    if (!audioFile) {
+      console.error("❌ Audio file not found or access denied");
       return NextResponse.json(
         { success: false, error: "Audio file not found" },
         { status: 404 }
@@ -57,9 +65,20 @@ export async function GET(
       .select("content")
       .eq("audio_file_id", audioId)
       .eq("uid", uid)
-      .single();
+      .maybeSingle(); // Use maybeSingle() to handle potential issues
 
-    if (existingContent && !contentError) {
+    if (contentError) {
+      console.error(
+        "❌ Database error checking existing content:",
+        contentError
+      );
+      return NextResponse.json(
+        { success: false, error: "Database error" },
+        { status: 500 }
+      );
+    }
+
+    if (existingContent) {
       // Return existing content from database
       console.log("✅ Returning existing learning content from database");
       return NextResponse.json({
@@ -67,18 +86,6 @@ export async function GET(
         data: existingContent.content,
         source: "database",
       });
-    }
-
-    // If contentError is not "PGRST116" (no rows found), then it's a real error
-    if (contentError && contentError.code !== "PGRST116") {
-      console.error(
-        "❌ Database error while checking for existing content:",
-        contentError
-      );
-      return NextResponse.json(
-        { success: false, error: "Database error" },
-        { status: 500 }
-      );
     }
 
     // If no existing content, generate new content (using sample data for now)
@@ -286,9 +293,12 @@ export async function GET(
         .select("content")
         .eq("audio_file_id", audioId)
         .eq("uid", uid)
-        .single();
+        .maybeSingle(); // Use maybeSingle() to handle potential issues
 
-    if (doubleCheckContent && !doubleCheckError) {
+    if (doubleCheckError) {
+      console.error("❌ Database error during double-check:", doubleCheckError);
+      // Continue with insertion attempt despite error
+    } else if (doubleCheckContent) {
       // Another request already created the content, return that instead
       console.log(
         "✅ Content was created by another request, returning existing content"
@@ -320,7 +330,7 @@ export async function GET(
             .select("content")
             .eq("audio_file_id", audioId)
             .eq("uid", uid)
-            .single();
+            .maybeSingle(); // Use maybeSingle() to handle potential issues
 
           if (existingAfterError) {
             // Also update audio file status to completed if not already
