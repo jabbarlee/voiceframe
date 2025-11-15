@@ -36,18 +36,6 @@ import {
   FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import ReactFlow, {
-  MiniMap,
-  Controls,
-  Background,
-  useNodesState,
-  useEdgesState,
-  addEdge,
-  Node,
-  Edge,
-  Position,
-  MarkerType,
-} from "reactflow";
 import "reactflow/dist/style.css";
 import { getCurrentUserToken } from "@/lib/auth";
 
@@ -100,203 +88,6 @@ interface ContentData {
   };
 }
 
-// Default/fallback data
-const defaultData = {
-  audioTitle: "DEFAULT DATA - Machine Learning Overview",
-  duration: "45 minutes",
-  processedAt: "2024-01-15T10:30:00Z",
-
-  summary: {
-    professional: {
-      title: "Introduction to Machine Learning - Comprehensive Overview",
-      sections: [
-        {
-          heading: "Core Definition and Paradigm Shift",
-          content:
-            "**Machine Learning** represents a paradigm shift in computational problem-solving, where systems learn patterns from data rather than following explicit programming instructions. This foundational lecture establishes the theoretical framework for understanding supervised, unsupervised, and reinforcement learning methodologies.",
-        },
-        {
-          heading: "Primary Objectives",
-          content:
-            "The primary objective of machine learning is to develop **algorithms that can automatically improve their performance through experience**. Key applications include:\n\n• **Pattern recognition** - Identifying complex patterns in data\n• **Predictive analytics** - Forecasting future trends and behaviors\n• **Autonomous decision-making systems** - Automated systems across various domains\n\nThese applications span across healthcare, finance, and technology sectors.",
-        },
-        {
-          heading: "Fundamental Concepts",
-          content:
-            "Essential concepts covered in this session include:\n\n• **Training datasets** - Core data used to teach algorithms\n• **Feature engineering** - Process of selecting and transforming input variables\n• **Model validation** - Techniques to assess model performance\n• **Bias-variance tradeoff** - Fundamental balance in model complexity\n\nUnderstanding these principles is **crucial for implementing effective machine learning solutions** in real-world scenarios.",
-        },
-      ],
-    },
-
-    friendly: {
-      title: "Welcome to the Exciting World of Machine Learning! 🤖",
-      sections: [
-        {
-          heading: "What is Machine Learning?",
-          content:
-            "Think of **Machine Learning** as teaching computers to be smart by showing them lots of examples! It's just like how you learned to recognize cats by seeing many different cats over time.\n\nInstead of programming every single rule, we let computers **discover patterns on their own** - pretty cool, right?",
-        },
-        {
-          heading: "The Three Superpowers of ML",
-          content:
-            "In today's session, we explored three amazing types of machine learning:\n\n🎓 **Supervised Learning** - Learning with a teacher helping\n🔍 **Unsupervised Learning** - Finding hidden patterns like a detective\n🎮 **Reinforcement Learning** - Learning through trial and error (like playing games!)\n\nEach type has its own **superpowers** for solving different kinds of problems!",
-        },
-        {
-          heading: "Your Smart AI Assistant",
-          content:
-            "Machine learning is like having a **really smart assistant** that gets better at helping you the more examples you show it. The more data it sees, the smarter it becomes at making decisions and predictions!\n\nIt's all about **learning from experience** - just like humans do, but much faster! ⚡",
-        },
-      ],
-    },
-
-    eli5: {
-      title: "Machine Learning for Beginners 🎯",
-      sections: [
-        {
-          heading: "Teaching Computers Like Teaching Kids",
-          content:
-            'Imagine you\'re teaching your **little brother** to recognize different animals. You show him pictures and say:\n\n• *"This is a dog"* 🐕\n• *"This is a cat"* 🐱  \n• *"This is a bird"* 🐦\n\nAfter seeing lots of pictures, he starts recognizing animals **all by himself**!',
-        },
-        {
-          heading: "That's Exactly What Machine Learning Does!",
-          content:
-            "We show computers lots of examples, and they learn to recognize patterns **all by themselves**. It's like magic, but it's actually **math**! 🎯\n\nThe computer becomes really good at spotting things it has seen before, just like your little brother with the animal pictures.",
-        },
-        {
-          heading: "Three Ways Computers Learn",
-          content:
-            "There are **three main ways** computers can learn:\n\n1. 🎓 **With a teacher helping** them (like our animal example)\n2. 🔍 **By finding secret patterns** in pictures or data\n3. 🎮 **By trying things and learning from mistakes** (like learning to ride a bike!)\n\nEach way is perfect for different types of problems the computer needs to solve.",
-        },
-      ],
-    },
-  },
-
-  flashcards: [
-    {
-      id: 1,
-      question: "What is Machine Learning?",
-      answer:
-        "A subset of artificial intelligence that enables systems to automatically learn and improve from experience without being explicitly programmed for every task.",
-    },
-    {
-      id: 2,
-      question: "What are the three main types of Machine Learning?",
-      answer:
-        "1. Supervised Learning (learning with labeled data)\n2. Unsupervised Learning (finding patterns in unlabeled data)\n3. Reinforcement Learning (learning through rewards and penalties)",
-    },
-    {
-      id: 3,
-      question: "What is the bias-variance tradeoff?",
-      answer:
-        "A fundamental concept where bias refers to errors from oversimplifying assumptions, while variance refers to errors from sensitivity to small fluctuations. The goal is to minimize both for optimal model performance.",
-    },
-    {
-      id: 4,
-      question: "Define 'overfitting' in machine learning",
-      answer:
-        "When a model learns the training data too well, including noise and outliers, resulting in poor performance on new, unseen data.",
-    },
-    {
-      id: 5,
-      question: "What is feature engineering?",
-      answer:
-        "The process of selecting, modifying, or creating new features (input variables) from raw data to improve machine learning model performance.",
-    },
-  ],
-
-  concepts: [
-    {
-      term: "Supervised Learning",
-      definition:
-        "A machine learning approach where the algorithm learns from labeled training data to make predictions on new, unseen data.",
-      category: "Learning Types",
-    },
-    {
-      term: "Training Dataset",
-      definition:
-        "A collection of data used to teach a machine learning algorithm, containing input features and their corresponding correct outputs.",
-      category: "Data",
-    },
-    {
-      term: "Algorithm",
-      definition:
-        "A set of rules or instructions that a machine learning model follows to make predictions or decisions based on input data.",
-      category: "Core Concepts",
-    },
-    {
-      term: "Cross-Validation",
-      definition:
-        "A technique used to assess how well a machine learning model generalizes to independent datasets by partitioning data into training and testing subsets.",
-      category: "Validation",
-    },
-    {
-      term: "Neural Network",
-      definition:
-        "A computational model inspired by biological neural networks, consisting of interconnected nodes that process and transmit information.",
-      category: "Models",
-    },
-    {
-      term: "Gradient Descent",
-      definition:
-        "An optimization algorithm used to minimize the cost function by iteratively moving in the direction of steepest descent.",
-      category: "Optimization",
-    },
-  ],
-
-  studyPacks: {
-    metadata: {
-      title: "Machine Learning Fundamentals",
-      subtitle: "Complete Study Guide",
-      author: "AI-Generated Content",
-      tags: ["Machine Learning", "AI", "Data Science", "Algorithms"],
-      duration: "45 minutes",
-      level: "Intermediate",
-      generatedAt: "2024-01-15T10:30:00Z",
-    },
-    templates: [
-      {
-        id: "academic",
-        name: "Academic Paper",
-        description: "Clean, scholarly design with proper citations",
-        preview: "/api/placeholder/300/400",
-        color: "blue",
-        features: ["Table of Contents", "References", "Clean Typography"],
-      },
-      {
-        id: "modern",
-        name: "Modern Magazine",
-        description: "Sleek, contemporary layout with visual elements",
-        preview: "/api/placeholder/300/400",
-        color: "purple",
-        features: ["Visual Elements", "Modern Layout", "Color Accents"],
-      },
-      {
-        id: "minimal",
-        name: "Minimal Clean",
-        description: "Simple, distraction-free design for focus",
-        preview: "/api/placeholder/300/400",
-        color: "gray",
-        features: ["Minimal Design", "High Readability", "Clean Spacing"],
-      },
-      {
-        id: "creative",
-        name: "Creative Studio",
-        description: "Vibrant, engaging design with illustrations",
-        preview: "/api/placeholder/300/400",
-        color: "emerald",
-        features: ["Illustrations", "Vibrant Colors", "Engaging Layout"],
-      },
-    ],
-    stats: {
-      totalPages: 12,
-      wordCount: 2847,
-      readingTime: "11 min",
-      concepts: 6,
-      flashcards: 5,
-    },
-  },
-};
-
 export default function ContentGenerationPage() {
   const { setTitle } = usePageTitle();
   const { user } = useAuth();
@@ -346,8 +137,8 @@ export default function ContentGenerationPage() {
         console.log(`✅ Content loaded from ${result.source}`);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load content");
-        setContentData(defaultData);
-        setTitle(defaultData.audioTitle);
+        setContentData(null);
+        setTitle("Content Not Available");
       } finally {
         setIsLoading(false);
       }
@@ -372,7 +163,7 @@ export default function ContentGenerationPage() {
     );
   }
 
-  // Show error state
+  // Show error state - no data available
   if (error && !contentData) {
     return (
       <div className="h-screen flex items-center justify-center bg-gray-50">
@@ -384,8 +175,20 @@ export default function ContentGenerationPage() {
     );
   }
 
-  // Use contentData or fallback to defaultData
-  const data = contentData || defaultData;
+  // Ensure we have contentData before rendering
+  if (!contentData) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">No content available</p>
+          <Button onClick={() => window.location.reload()}>Refresh</Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Use only real API data
+  const data = contentData;
 
   const contentTypes = [
     {
