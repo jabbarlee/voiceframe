@@ -12,6 +12,7 @@ import {
   Type,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getCurrentUserToken } from "@/lib/auth";
 
 interface AudioMetadata {
   id: string;
@@ -51,7 +52,18 @@ export default function AudioMetadataPanel({
       try {
         setError("");
         setIsLoading(true);
-        const response = await fetch(`/api/audio/${audioId}`);
+
+        // Get user token for authentication
+        const token = await getCurrentUserToken();
+        if (!token) {
+          throw new Error("Authentication required");
+        }
+
+        const response = await fetch(`/api/audio/${audioId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         const data = await response.json();
 
         if (!response.ok || !data.success) {
