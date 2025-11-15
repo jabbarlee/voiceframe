@@ -17,16 +17,19 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error("❌ Supabase connection error:", error);
-      return NextResponse.json({
-        success: false,
-        error: "Supabase connection failed",
-        details: {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        }
-      }, { status: 500 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Supabase connection failed",
+          details: {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code,
+          },
+        },
+        { status: 500 }
+      );
     }
 
     console.log("✅ Supabase connection test successful");
@@ -43,20 +46,22 @@ export async function GET(request: NextRequest) {
       message: "Supabase connection test passed",
       data: {
         recordCount: data?.length || 0,
-        environment: envCheck
-      }
+        environment: envCheck,
+      },
     });
-
   } catch (error: any) {
     console.error("❌ Test endpoint error:", error);
-    return NextResponse.json({
-      success: false,
-      error: "Test failed",
-      details: {
-        message: error.message,
-        stack: error.stack,
-        type: error.constructor.name
-      }
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Test failed",
+        details: {
+          message: error.message,
+          stack: error.stack,
+          type: error.constructor.name,
+        },
+      },
+      { status: 500 }
+    );
   }
 }

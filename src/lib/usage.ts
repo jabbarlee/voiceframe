@@ -16,7 +16,10 @@ export async function getUserUsage(uid: string): Promise<UserUsage | null> {
     console.log("📊 Getting usage for user:", uid);
 
     // Validate Supabase connection first
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    if (
+      !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+      !process.env.SUPABASE_SERVICE_ROLE_KEY
+    ) {
       console.error("❌ Missing Supabase environment variables");
       return null;
     }
@@ -24,7 +27,7 @@ export async function getUserUsage(uid: string): Promise<UserUsage | null> {
     // Get all usage records for this user, ordered by created_at desc
     // Add timeout to prevent hanging requests
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Supabase request timeout')), 10000)
+      setTimeout(() => reject(new Error("Supabase request timeout")), 10000)
     );
 
     const queryPromise = supabaseAdmin
@@ -33,17 +36,17 @@ export async function getUserUsage(uid: string): Promise<UserUsage | null> {
       .eq("uid", uid)
       .order("created_at", { ascending: false });
 
-    const { data: usageRecords, error } = await Promise.race([
+    const { data: usageRecords, error } = (await Promise.race([
       queryPromise,
-      timeoutPromise
-    ]) as any;
+      timeoutPromise,
+    ])) as any;
 
     if (error) {
       console.error("❌ Supabase error fetching user usage:", {
         message: error.message,
         details: error.details,
         hint: error.hint,
-        code: error.code
+        code: error.code,
       });
       return null;
     }
@@ -88,7 +91,9 @@ export async function getUserUsage(uid: string): Promise<UserUsage | null> {
         console.log(
           `🔄 Found ${usageRecords.length} duplicate usage records for user ${uid}, cleaning up...`
         );
-        const duplicateIds = usageRecords.slice(1).map((record: any) => record.id);
+        const duplicateIds = usageRecords
+          .slice(1)
+          .map((record: any) => record.id);
 
         const { error: deleteError } = await supabaseAdmin
           .from("user_usage")
