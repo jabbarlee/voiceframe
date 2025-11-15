@@ -36,6 +36,7 @@ import {
   FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PDFDownloadButton } from "@/components/ui/PDFDownloadButton";
 import "reactflow/dist/style.css";
 import { getCurrentUserToken } from "@/lib/auth";
 
@@ -69,6 +70,8 @@ interface ContentData {
       duration: string;
       level: string;
       generatedAt: string;
+      sourceType?: string;
+      wordComplexity?: string;
     };
     templates: {
       id: string;
@@ -82,8 +85,10 @@ interface ContentData {
       totalPages: number;
       wordCount: number;
       readingTime: string;
+      studyTime?: string;
       concepts: number;
       flashcards: number;
+      sections?: number;
     };
   };
 }
@@ -843,14 +848,21 @@ export default function ContentGenerationPage() {
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Button
-                      variant="outline"
+                    <PDFDownloadButton
+                      audioId={audioId}
+                      audioTitle={data.audioTitle}
+                      template={selectedTemplate}
+                      options={{
+                        includeSummary: true,
+                        summaryTone: summaryTone,
+                        includeFlashcards: true,
+                        includeConcepts: true,
+                        includeMetadata: true,
+                      }}
                       size="sm"
+                      variant="outline"
                       className="flex items-center space-x-2"
-                    >
-                      <Download className="h-4 w-4" />
-                      <span className="hidden sm:inline">Download</span>
-                    </Button>
+                    />
                     <Button
                       size="sm"
                       className="bg-indigo-600 hover:bg-indigo-700 flex items-center space-x-2"
@@ -897,12 +909,21 @@ export default function ContentGenerationPage() {
                           <div>
                             Reading: {data.studyPacks.stats.readingTime}
                           </div>
+                          {data.studyPacks.stats.studyTime && (
+                            <div>Study: {data.studyPacks.stats.studyTime}</div>
+                          )}
+                          {data.studyPacks.metadata.wordComplexity && (
+                            <div>
+                              Complexity:{" "}
+                              {data.studyPacks.metadata.wordComplexity}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
 
                     {/* Pack Stats */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-gray-200">
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 pt-4 border-t border-gray-200">
                       <div className="text-center">
                         <div className="text-2xl font-bold text-indigo-600">
                           {data.studyPacks.stats.totalPages}
@@ -927,6 +948,14 @@ export default function ContentGenerationPage() {
                         </div>
                         <div className="text-sm text-gray-600">Flashcards</div>
                       </div>
+                      {data.studyPacks.stats.sections && (
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-orange-600">
+                            {data.studyPacks.stats.sections}
+                          </div>
+                          <div className="text-sm text-gray-600">Sections</div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1059,13 +1088,20 @@ export default function ContentGenerationPage() {
                             <Eye className="h-4 w-4 mr-2" />
                             Full Preview
                           </Button>
-                          <Button
+                          <PDFDownloadButton
+                            audioId={audioId}
+                            audioTitle={data.audioTitle}
+                            template={selectedTemplate}
+                            options={{
+                              includeSummary: true,
+                              summaryTone: summaryTone,
+                              includeFlashcards: true,
+                              includeConcepts: true,
+                              includeMetadata: true,
+                            }}
                             size="sm"
-                            className="bg-indigo-600 hover:bg-indigo-700"
-                          >
-                            <Download className="h-4 w-4 mr-2" />
-                            Export PDF
-                          </Button>
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                          />
                         </div>
                       </div>
                     </div>
@@ -1146,13 +1182,19 @@ export default function ContentGenerationPage() {
                       Sharing & Export Options
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <Button
-                        variant="outline"
-                        className="flex items-center justify-center space-x-2 h-12"
-                      >
-                        <Download className="h-5 w-5" />
-                        <span>Download PDF</span>
-                      </Button>
+                      <PDFDownloadButton
+                        audioId={audioId}
+                        audioTitle={data.audioTitle}
+                        template={selectedTemplate}
+                        options={{
+                          includeSummary: true,
+                          summaryTone: summaryTone,
+                          includeFlashcards: true,
+                          includeConcepts: true,
+                          includeMetadata: true,
+                        }}
+                        className="h-12 w-full"
+                      />
                       <Button
                         variant="outline"
                         className="flex items-center justify-center space-x-2 h-12"

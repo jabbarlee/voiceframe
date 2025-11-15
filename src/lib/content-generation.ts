@@ -123,9 +123,9 @@ Transcript: ${transcript}`,
 
   try {
     const [professional, friendly, eli5] = await Promise.all([
-      generateSummaryTone(summaryPrompts.professional),
-      generateSummaryTone(summaryPrompts.friendly),
-      generateSummaryTone(summaryPrompts.eli5),
+      generateSummaryTone(summaryPrompts.professional, "professional"),
+      generateSummaryTone(summaryPrompts.friendly, "friendly"),
+      generateSummaryTone(summaryPrompts.eli5, "eli5"),
     ]);
 
     return {
@@ -139,7 +139,10 @@ Transcript: ${transcript}`,
   }
 }
 
-async function generateSummaryTone(prompt: string) {
+async function generateSummaryTone(
+  prompt: string,
+  toneType: string = "unknown"
+) {
   const completion = await openai.chat.completions.create({
     model: "gpt-4o-2024-08-06",
     messages: [
@@ -197,8 +200,12 @@ async function generateSummaryTone(prompt: string) {
   const content = completion.choices[0]?.message?.content;
   if (!content) throw new Error("No summary content generated");
 
+  console.log(`🔍 Raw summary response for ${toneType}:`, content);
+
   try {
-    return JSON.parse(content);
+    const parsed = JSON.parse(content);
+    console.log(`✅ Successfully parsed summary for ${toneType}`);
+    return parsed;
   } catch (parseError) {
     console.error("❌ Failed to parse summary JSON:", content);
     throw new Error("Invalid JSON response from AI");
@@ -385,7 +392,25 @@ function generateStudyPackMetadata(
     "would",
     "could",
     "should",
+    "this",
+    "that",
+    "they",
+    "them",
+    "their",
+    "there",
+    "it",
+    "its",
+    "you",
+    "your",
+    "we",
+    "our",
+    "can",
+    "may",
+    "might",
+    "shall",
+    "must",
   ];
+
   const significantWords = words
     .filter((word) => word.length > 4 && !commonWords.includes(word))
     .reduce((acc: { [key: string]: number }, word) => {
@@ -395,36 +420,53 @@ function generateStudyPackMetadata(
 
   const topicTags = Object.entries(significantWords)
     .sort(([, a], [, b]) => (b as number) - (a as number))
-    .slice(0, 4)
+    .slice(0, 5)
     .map(([word]) => word.charAt(0).toUpperCase() + word.slice(1));
 
-  // Estimate reading time (average 200 words per minute)
-  const wordCount = input.transcript.split(" ").length;
+  // Estimate reading time (average 200 words per minute for study material)
+  const wordCount = input.transcript
+    .split(/\s+/)
+    .filter((word) => word.length > 0).length;
   const readingTimeMinutes = Math.ceil(wordCount / 200);
+
+  // Determine difficulty level based on word count and complexity
+  const avgWordLength = input.transcript.length / wordCount;
+  const complexity =
+    avgWordLength > 5.5 ? "High" : avgWordLength > 4.5 ? "Medium" : "Low";
+
+  let level = "Beginner";
+  if (wordCount > 2500 || complexity === "High") {
+    level = "Advanced";
+  } else if (wordCount > 1200 || complexity === "Medium") {
+    level = "Intermediate";
+  }
 
   return {
     metadata: {
       title: input.audioTitle,
-      subtitle: "Complete Study Guide",
-      author: "AI-Generated Content",
-      tags: topicTags,
+      subtitle: `Study Guide - ${level} Level`,
+      author: "VoiceFrame AI",
+      tags:
+        topicTags.length > 0 ? topicTags : ["Study Material", "Audio Content"],
       duration: input.duration,
-      level:
-        wordCount > 2000
-          ? "Advanced"
-          : wordCount > 1000
-          ? "Intermediate"
-          : "Beginner",
+      level,
       generatedAt: input.processedAt,
+      sourceType: "Audio Transcription",
+      wordComplexity: complexity,
     },
     templates: [
       {
         id: "academic",
         name: "Academic Paper",
-        description: "Clean, scholarly design with proper citations",
+        description: "Clean, scholarly design with proper formatting",
         preview: "/api/placeholder/300/400",
         color: "blue",
-        features: ["Table of Contents", "References", "Clean Typography"],
+        features: [
+          "Table of Contents",
+          "Professional Layout",
+          "Clear Typography",
+          "Section Headers",
+        ],
       },
       {
         id: "modern",
@@ -432,31 +474,51 @@ function generateStudyPackMetadata(
         description: "Sleek, contemporary layout with visual elements",
         preview: "/api/placeholder/300/400",
         color: "purple",
-        features: ["Visual Elements", "Modern Layout", "Color Accents"],
+        features: [
+          "Visual Elements",
+          "Modern Layout",
+          "Color Accents",
+          "Engaging Design",
+        ],
       },
       {
         id: "minimal",
         name: "Minimal Clean",
-        description: "Simple, distraction-free design for focus",
+        description: "Simple, distraction-free design for focused study",
         preview: "/api/placeholder/300/400",
         color: "gray",
-        features: ["Minimal Design", "High Readability", "Clean Spacing"],
+        features: [
+          "Minimal Design",
+          "High Readability",
+          "Clean Spacing",
+          "Focus-Friendly",
+        ],
       },
       {
         id: "creative",
         name: "Creative Studio",
-        description: "Vibrant, engaging design with illustrations",
+        description: "Vibrant, engaging design with dynamic elements",
         preview: "/api/placeholder/300/400",
         color: "emerald",
-        features: ["Illustrations", "Vibrant Colors", "Engaging Layout"],
+        features: [
+          "Creative Layout",
+          "Vibrant Colors",
+          "Engaging Design",
+          "Visual Appeal",
+        ],
       },
     ],
     stats: {
-      totalPages: Math.ceil(wordCount / 300), // Estimate pages
+      totalPages: Math.max(
+        1,
+        Math.ceil((wordCount + flashcardCount * 50 + conceptCount * 30) / 350)
+      ), // More accurate page estimate
       wordCount,
       readingTime: `${readingTimeMinutes} min`,
+      studyTime: `${Math.ceil(readingTimeMinutes * 2.5)} min`, // Include time for flashcards and review
       concepts: conceptCount,
       flashcards: flashcardCount,
+      sections: 3 + (flashcardCount > 0 ? 1 : 0) + (conceptCount > 0 ? 1 : 0), // Summary + flashcards + concepts + metadata
     },
   };
 }
