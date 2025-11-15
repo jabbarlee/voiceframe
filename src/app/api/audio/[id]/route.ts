@@ -41,13 +41,21 @@ export async function GET(
       .select("*")
       .eq("id", audioId)
       .eq("uid", uid) // Ensure user owns this file
-      .single();
+      .maybeSingle(); // Use maybeSingle() to handle potential issues
 
     if (error) {
       console.error("❌ Database error:", error);
       return NextResponse.json(
+        { success: false, error: "Database error" },
+        { status: 500 }
+      );
+    }
+
+    if (!audioFile) {
+      return NextResponse.json(
         { success: false, error: "Audio file not found" },
         { status: 404 }
+      );
       );
     }
 

@@ -33,9 +33,13 @@ export async function POST(req: NextRequest) {
       .from("users")
       .select("uid")
       .eq("uid", uid)
-      .single();
+      .maybeSingle(); // Use maybeSingle() to handle 0 rows
 
-    if (checkError && checkError.code === "PGRST116") {
+    if (checkError) {
+      console.error("❌ Error checking user:", checkError);
+    }
+
+    if (!existingUser && (!checkError || checkError.code === "PGRST116")) {
       // User doesn't exist, create them
       console.log("🔄 Creating user in database (fallback)");
       const { error: insertError } = await supabaseAdmin.from("users").insert({
@@ -48,6 +52,26 @@ export async function POST(req: NextRequest) {
       if (insertError && insertError.code !== "23505") {
         // Ignore duplicate key errors, log others
         console.error("❌ Error creating user:", insertError);
+      } else {
+        // Also create default usage record for the new user
+        console.log("🔄 Creating default usage record for user (fallback)");
+        const { error: usageError } = await supabaseAdmin
+          .from("user_usage")
+          .insert({
+            uid,
+            plan: "free",
+            allowed_minutes: 30,
+            used_minutes: 0,
+            cycle_start: new Date(
+              new Date().getFullYear(),
+              new Date().getMonth(),
+              1
+            ),
+          });
+
+        if (usageError) {
+          console.error("❌ Error creating default usage record:", usageError);
+        }
       }
     }
 

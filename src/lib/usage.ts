@@ -13,15 +13,67 @@ export interface UserUsage {
 
 export async function getUserUsage(uid: string): Promise<UserUsage | null> {
   try {
-    const { data: usage, error } = await supabaseAdmin
+    // Get all usage records for this user, ordered by created_at desc
+    const { data: usageRecords, error } = await supabaseAdmin
       .from("user_usage")
       .select("*")
       .eq("uid", uid)
-      .single();
+      .order("created_at", { ascending: false });
 
-    if (error || !usage) {
+    if (error) {
       console.error("❌ Error fetching user usage:", error);
       return null;
+    }
+
+    let usage = null;
+
+    if (!usageRecords || usageRecords.length === 0) {
+      // No usage record exists, create one with default values
+      console.log("🔄 Creating default usage record for user:", uid);
+      const defaultUsage = {
+        uid,
+        plan: "free",
+        allowed_minutes: 30,
+        used_minutes: 0,
+        cycle_start: new Date(
+          new Date().getFullYear(),
+          new Date().getMonth(),
+          1
+        ).toISOString(),
+      };
+
+      const { data: newUsage, error: insertError } = await supabaseAdmin
+        .from("user_usage")
+        .insert(defaultUsage)
+        .select("*")
+        .single();
+
+      if (insertError) {
+        console.error("❌ Error creating default usage record:", insertError);
+        return null;
+      }
+
+      usage = newUsage;
+    } else {
+      // Use the most recent record
+      usage = usageRecords[0];
+
+      // If there are duplicates, clean them up (keep the most recent)
+      if (usageRecords.length > 1) {
+        console.log(`🔄 Found ${usageRecords.length} duplicate usage records for user ${uid}, cleaning up...`);
+        const duplicateIds = usageRecords.slice(1).map(record => record.id);
+        
+        const { error: deleteError } = await supabaseAdmin
+          .from("user_usage")
+          .delete()
+          .in("id", duplicateIds);
+
+        if (deleteError) {
+          console.error("❌ Error cleaning up duplicate usage records:", deleteError);
+        } else {
+          console.log(`✅ Cleaned up ${duplicateIds.length} duplicate usage records`);
+        }
+      }
     }
 
     const remaining_minutes = Math.max(
@@ -131,18 +183,15 @@ export async function updateUserUsage(
   minutesToAdd: number
 ): Promise<boolean> {
   try {
-    const { data: currentUsage, error: fetchError } = await supabaseAdmin
-      .from("user_usage")
-      .select("used_minutes")
-      .eq("uid", uid)
-      .single();
+    // First ensure the user has a usage record (this will create one if it doesn't exist)
+    const usage = await getUserUsage(uid);
 
-    if (fetchError || !currentUsage) {
-      console.error("❌ Error fetching current usage:", fetchError);
+    if (!usage) {
+      console.error("❌ Unable to get or create usage record for user:", uid);
       return false;
     }
 
-    const newUsedMinutes = currentUsage.used_minutes + minutesToAdd;
+    const newUsedMinutes = usage.used_minutes + minutesToAdd;
 
     const { error: updateError } = await supabaseAdmin
       .from("user_usage")

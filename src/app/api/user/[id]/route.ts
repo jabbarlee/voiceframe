@@ -28,9 +28,17 @@ export async function GET(
       .from("users")
       .select("*")
       .eq("uid", userId)
-      .single();
+      .maybeSingle(); // Use maybeSingle() to handle potential duplicates or missing records
 
-    if (userError || !userData) {
+    if (userError) {
+      console.error("❌ Error fetching user:", userError);
+      return NextResponse.json(
+        { success: false, error: "Database error" },
+        { status: 500 }
+      );
+    }
+
+    if (!userData) {
       return NextResponse.json(
         { success: false, error: "User not found" },
         { status: 404 }

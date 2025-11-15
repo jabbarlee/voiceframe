@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
         .from("user_usage")
         .select("id")
         .eq("uid", uid)
-        .single();
+        .maybeSingle(); // Use maybeSingle() to handle 0 rows
 
       if (!existingUsage) {
         // Create usage tracking for existing user if missing
