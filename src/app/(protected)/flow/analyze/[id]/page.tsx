@@ -133,52 +133,126 @@ export default function AudioTranscriptionPage() {
     // If user is undefined, we're still loading auth state
   }, [user, audioId]);
 
-  // Start real transcription using OpenAI
+  // Start real transcription using OpenAI (with optional streaming)
   const startTranscription = async (
     audioFile: AudioMetadata,
-    token: string
+    token: string,
+    useStreaming = true
   ) => {
     try {
       setIsTranscribing(true);
       setTranscriptionProgress(0);
       setTranscriptionError("");
+      setCurrentTranscript(""); // Clear previous content
 
       console.log("🚀 Starting transcription for audio file:", audioFile.id);
 
-      const response = await fetch("/api/audio/transcribe", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          audio_file_id: audioFile.id,
-          options: {
-            language: "en", // Could be made configurable
-            response_format: "verbose_json",
-            include_timestamps: true,
+      if (useStreaming) {
+        // Use Server-Sent Events for streaming transcription
+        const response = await fetch("/api/audio/transcribe/stream", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
           },
-        }),
-      });
+          body: JSON.stringify({
+            audio_file_id: audioFile.id,
+            options: {
+              language: "en",
+              high_quality: false, // Use cost-effective option
+            },
+          }),
+        });
 
-      const data = await response.json();
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
 
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || "Transcription failed");
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+
+        if (reader) {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6));
+                  
+                  switch (data.type) {
+                    case 'progress':
+                      setTranscriptionProgress(data.progress);
+                      break;
+                    case 'chunk':
+                      // Append chunk to current transcript
+                      setCurrentTranscript(prev => prev + data.chunk);
+                      break;
+                    case 'complete':
+                      setTranscriptionData(data.transcript);
+                      setCurrentTranscript(data.transcript.text);
+                      setTranscriptionProgress(100);
+                      setIsTranscribing(false);
+                      console.log("✅ Streaming transcription completed");
+                      return;
+                    case 'error':
+                      throw new Error(data.error);
+                  }
+                } catch (parseError) {
+                  // Ignore parsing errors for malformed chunks
+                  console.warn("Failed to parse SSE data:", line);
+                }
+              }
+            }
+          }
+        }
+      } else {
+        // Fallback to regular transcription
+        const response = await fetch("/api/audio/transcribe", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            audio_file_id: audioFile.id,
+            options: {
+              language: "en",
+              response_format: "verbose_json",
+              include_timestamps: true,
+            },
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || "Transcription failed");
+        }
+
+        console.log("✅ Transcription completed successfully");
+        
+        setTranscriptionData(data.data);
+        setCurrentTranscript(data.data.text);
+        setTranscriptionProgress(100);
+        setIsTranscribing(false);
       }
 
-      console.log("✅ Transcription completed successfully");
-
-      // Set the final result
-      setTranscriptionData(data.data);
-      setCurrentTranscript(data.data.text);
-      setTranscriptionProgress(100);
-      setIsTranscribing(false);
     } catch (error: any) {
       console.error("❌ Transcription error:", error);
       setTranscriptionError(error.message || "Transcription failed");
       setIsTranscribing(false);
       setTranscriptionProgress(0);
+
+      // If streaming failed, try regular transcription
+      if (useStreaming && error.message.includes('stream')) {
+        console.log("🔄 Streaming failed, falling back to regular transcription...");
+        setTimeout(() => startTranscription(audioFile, token, false), 1000);
+      }
     }
   };
 

@@ -1,14 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth } from "@/lib/firebase-admin";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import {
-  transcribeAudio,
-  validateFileForTranscription,
+import { 
+  transcribeAudio, 
+  validateFileForTranscription, 
   estimateTranscriptionCost,
   TRANSCRIPTION_MODELS,
   getRecommendedModel,
-  type TranscriptionOptions,
+  type TranscriptionOptions 
 } from "@/lib/openai-transcription";
+import { 
+  checkCostLimit, 
+  updateCostTracking, 
+  getUserPlan,
+  logCostEntry 
+} from "@/lib/cost-tracking";
 
 /**
  * POST /api/audio/transcribe

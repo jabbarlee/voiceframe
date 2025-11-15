@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth } from "@/lib/firebase-admin";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { 
-  transcribeAudioStreaming, 
-  validateFileForTranscription, 
+import {
+  transcribeAudioStreaming,
+  validateFileForTranscription,
   estimateTranscriptionCost,
   getRecommendedModel,
-  type TranscriptionOptions 
+  type TranscriptionOptions,
 } from "@/lib/openai-transcription";
 
 /**
@@ -15,7 +15,9 @@ import {
  */
 export async function POST(request: NextRequest) {
   try {
-    console.log("🎙️ POST /api/audio/transcribe/stream - Starting streaming transcription");
+    console.log(
+      "🎙️ POST /api/audio/transcribe/stream - Starting streaming transcription"
+    );
 
     // Verify authentication
     const authHeader = request.headers.get("authorization");
@@ -43,10 +45,7 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json();
-    const { 
-      audio_file_id, 
-      options = {},
-    } = body;
+    const { audio_file_id, options = {} } = body;
 
     // Validate required fields
     if (!audio_file_id) {
@@ -115,15 +114,15 @@ export async function POST(request: NextRequest) {
 
     // Set up Server-Sent Events
     const encoder = new TextEncoder();
-    
+
     const customReadable = new ReadableStream({
       async start(controller) {
         try {
           // Send initial progress event
-          const progressData = JSON.stringify({ 
-            type: 'progress', 
-            progress: 0, 
-            message: 'Starting transcription...' 
+          const progressData = JSON.stringify({
+            type: "progress",
+            progress: 0,
+            message: "Starting transcription...",
           });
           controller.enqueue(encoder.encode(`data: ${progressData}\n\n`));
 
@@ -143,8 +142,10 @@ export async function POST(request: NextRequest) {
             temperature: options.temperature,
           };
 
-          console.log(`🚀 Starting streaming transcription with model: ${model}`);
-          
+          console.log(
+            `🚀 Starting streaming transcription with model: ${model}`
+          );
+
           const startTime = Date.now();
           let chunkCount = 0;
 
@@ -152,7 +153,7 @@ export async function POST(request: NextRequest) {
           const onProgress = (chunk: string) => {
             chunkCount++;
             const progressEvent = JSON.stringify({
-              type: 'chunk',
+              type: "chunk",
               chunk,
               chunkNumber: chunkCount,
             });
@@ -160,10 +161,10 @@ export async function POST(request: NextRequest) {
 
             // Send progress update
             const progressPercent = Math.min(90, chunkCount * 5);
-            const progressData = JSON.stringify({ 
-              type: 'progress', 
+            const progressData = JSON.stringify({
+              type: "progress",
               progress: progressPercent,
-              message: 'Processing transcription...' 
+              message: "Processing transcription...",
             });
             controller.enqueue(encoder.encode(`data: ${progressData}\n\n`));
           };
@@ -183,33 +184,34 @@ export async function POST(request: NextRequest) {
           const wordCount = result.text
             .trim()
             .split(/\s+/)
-            .filter(word => word.length > 0).length;
+            .filter((word) => word.length > 0).length;
 
           // Save transcript to database
-          const { data: savedTranscript, error: saveError } = await supabaseAdmin
-            .from("transcripts")
-            .insert({
-              audio_file_id,
-              uid,
-              content: result.text,
-              language: result.language || options.language || "en",
-              word_count: wordCount,
-              processing_time_ms: processingTime,
-              model_used: model,
-              cost_estimate_usd: estimateTranscriptionCost(
-                audioFile.file_size_bytes,
-                audioFile.mime_type,
-                model
-              ).estimatedCostUSD,
-            })
-            .select()
-            .single();
+          const { data: savedTranscript, error: saveError } =
+            await supabaseAdmin
+              .from("transcripts")
+              .insert({
+                audio_file_id,
+                uid,
+                content: result.text,
+                language: result.language || options.language || "en",
+                word_count: wordCount,
+                processing_time_ms: processingTime,
+                model_used: model,
+                cost_estimate_usd: estimateTranscriptionCost(
+                  audioFile.file_size_bytes,
+                  audioFile.mime_type,
+                  model
+                ).estimatedCostUSD,
+              })
+              .select()
+              .single();
 
           if (saveError) {
             console.error("❌ Error saving transcript:", saveError);
             const errorEvent = JSON.stringify({
-              type: 'error',
-              error: 'Failed to save transcript',
+              type: "error",
+              error: "Failed to save transcript",
             });
             controller.enqueue(encoder.encode(`data: ${errorEvent}\n\n`));
           } else {
@@ -221,7 +223,7 @@ export async function POST(request: NextRequest) {
 
             // Send completion event
             const completionEvent = JSON.stringify({
-              type: 'complete',
+              type: "complete",
               transcript: {
                 id: savedTranscript.id,
                 text: result.text,
@@ -235,10 +237,9 @@ export async function POST(request: NextRequest) {
 
           // Close the stream
           controller.close();
-
         } catch (error: any) {
           console.error("❌ Streaming transcription error:", error);
-          
+
           // Update status to failed
           await supabaseAdmin
             .from("audio_files")
@@ -246,8 +247,8 @@ export async function POST(request: NextRequest) {
             .eq("id", audio_file_id);
 
           const errorEvent = JSON.stringify({
-            type: 'error',
-            error: error.message || 'Transcription failed',
+            type: "error",
+            error: error.message || "Transcription failed",
           });
           controller.enqueue(encoder.encode(`data: ${errorEvent}\n\n`));
           controller.close();
@@ -259,19 +260,18 @@ export async function POST(request: NextRequest) {
       headers: {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
-        "Connection": "keep-alive",
+        Connection: "keep-alive",
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST",
         "Access-Control-Allow-Headers": "Authorization, Content-Type",
       },
     });
-
   } catch (error: any) {
     console.error("❌ Error in streaming transcription endpoint:", error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error.message || "Internal server error" 
+      {
+        success: false,
+        error: error.message || "Internal server error",
       },
       { status: 500 }
     );
