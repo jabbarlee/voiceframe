@@ -49,29 +49,15 @@ export default function AudioTranscriptionPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [isSavingTranscript, setIsSavingTranscript] = useState(false);
-
-  // Sample transcript segments that will appear progressively
-  const sampleTranscript = `Welcome to today's product review meeting. I'm excited to discuss the progress we've made on our voice transcription platform.
-
-First, let's talk about the user interface improvements. The team has done an excellent job creating a clean, intuitive design that makes it easy for users to upload and manage their audio files.
-
-The drag-and-drop functionality is working seamlessly, and the progress indicators provide clear feedback during the upload process. Users can now see real-time progress as their files are being processed.
-
-One of the key features we've implemented is the live transcription view. This allows users to see their audio being converted to text in real-time, which creates an engaging and transparent experience.
-
-The metadata display shows all the important file information in a visually appealing format. Users can see file size, duration, format, and upload timestamp at a glance.
-
-Moving forward, we'll be focusing on improving the accuracy of the transcription engine and adding support for multiple languages. The team is also working on speaker identification and timestamp markers.
-
-The dashboard provides a comprehensive overview of all user activities, including upload statistics and recent transcriptions. This helps users keep track of their usage and manage their content effectively.
-
-Thank you all for your hard work on this project. The results speak for themselves, and I'm confident that our users will love these new features.`;
+  const [transcriptionError, setTranscriptionError] = useState("");
+  const [existingTranscript, setExistingTranscript] = useState<any>(null);
+  const [transcriptionData, setTranscriptionData] = useState<any>(null);
 
   useEffect(() => {
     setTitle("Live Transcription");
   }, [setTitle]);
 
-  // Fetch audio metadata - wait for user to be loaded
+  // Fetch audio metadata and check for existing transcript
   useEffect(() => {
     const fetchAudioMetadata = async () => {
       try {
@@ -81,6 +67,7 @@ Thank you all for your hard work on this project. The results speak for themselv
           return;
         }
 
+        // Fetch audio metadata
         const response = await fetch(`/api/audio/${audioId}`, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -94,9 +81,42 @@ Thank you all for your hard work on this project. The results speak for themselv
         }
 
         setAudioMetadata(data.data);
+
+        // Check if transcript already exists
+        const transcriptResponse = await fetch(
+          `/api/transcripts?audio_file_id=${audioId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        const transcriptData = await transcriptResponse.json();
+
+        if (
+          transcriptResponse.ok &&
+          transcriptData.success &&
+          transcriptData.data.length > 0
+        ) {
+          // Transcript already exists
+          const transcript = transcriptData.data[0];
+          setExistingTranscript(transcript);
+          setCurrentTranscript(transcript.content);
+          setIsTranscribing(false);
+          setTranscriptionProgress(100);
+          console.log("✅ Found existing transcript:", transcript.id);
+        } else {
+          // No transcript exists, start transcription
+          console.log(
+            "🎙️ No existing transcript found, starting transcription..."
+          );
+          await startTranscription(data.data, token);
+        }
       } catch (error: any) {
         console.error("❌ Error fetching audio metadata:", error);
         setError(error.message || "Failed to load audio file");
+        setIsTranscribing(false);
       } finally {
         setIsLoading(false);
       }
@@ -113,83 +133,71 @@ Thank you all for your hard work on this project. The results speak for themselv
     // If user is undefined, we're still loading auth state
   }, [user, audioId]);
 
-  // Save transcript to database when transcription is completed
-  const saveTranscript = async (transcript: string) => {
-    if (!audioMetadata || !transcript.trim()) return;
-
+  // Start real transcription using OpenAI
+  const startTranscription = async (
+    audioFile: AudioMetadata,
+    token: string
+  ) => {
     try {
-      setIsSavingTranscript(true);
-      console.log("💾 Saving transcript to database...");
+      setIsTranscribing(true);
+      setTranscriptionProgress(0);
+      setTranscriptionError("");
 
-      const token = await getCurrentUserToken();
-      if (!token) {
-        console.error("❌ No auth token available");
-        return;
-      }
+      console.log("🚀 Starting transcription for audio file:", audioFile.id);
 
-      const response = await fetch("/api/transcripts", {
+      const response = await fetch("/api/audio/transcribe", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          audio_file_id: audioMetadata.id,
-          content: transcript,
-          language: "en", // Default to English, could be detected or user-selected
+          audio_file_id: audioFile.id,
+          options: {
+            language: "en", // Could be made configurable
+            response_format: "verbose_json",
+            include_timestamps: true,
+          },
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        throw new Error(data.error || "Failed to save transcript");
+        throw new Error(data.error || "Transcription failed");
       }
 
-      console.log("✅ Transcript saved successfully:", data.data.id);
+      console.log("✅ Transcription completed successfully");
+
+      // Set the final result
+      setTranscriptionData(data.data);
+      setCurrentTranscript(data.data.text);
+      setTranscriptionProgress(100);
+      setIsTranscribing(false);
     } catch (error: any) {
-      console.error("❌ Error saving transcript:", error);
-      // Don't show error to user as this is background operation
-      // Could add a toast notification here if needed
-    } finally {
-      setIsSavingTranscript(false);
+      console.error("❌ Transcription error:", error);
+      setTranscriptionError(error.message || "Transcription failed");
+      setIsTranscribing(false);
+      setTranscriptionProgress(0);
     }
   };
 
-  // Simulate transcription progress
+  // Simulate progress while transcription is running
   useEffect(() => {
-    if (!isTranscribing) return;
+    if (!isTranscribing || transcriptionProgress >= 90) return;
 
     const interval = setInterval(() => {
       setTranscriptionProgress((prev) => {
-        const newProgress = prev + Math.random() * 3;
-        if (newProgress >= 100) {
-          setIsTranscribing(false);
-          return 100;
-        }
-        return newProgress;
+        // Progress more slowly as we approach completion
+        const increment = prev < 30 ? 2 : prev < 60 ? 1 : 0.5;
+        return Math.min(90, prev + increment);
       });
-    }, 500);
+    }, 1000);
 
     return () => clearInterval(interval);
-  }, [isTranscribing]);
+  }, [isTranscribing, transcriptionProgress]);
 
-  // Simulate live transcript updates and save when completed
-  useEffect(() => {
-    if (!isTranscribing) {
-      setCurrentTranscript(sampleTranscript);
-      // Save transcript when transcription is completed
-      if (audioMetadata && sampleTranscript.trim()) {
-        saveTranscript(sampleTranscript);
-      }
-      return;
-    }
-
-    const targetLength = Math.floor(
-      (transcriptionProgress / 100) * sampleTranscript.length
-    );
-    setCurrentTranscript(sampleTranscript.substring(0, targetLength));
-  }, [transcriptionProgress, isTranscribing, sampleTranscript, audioMetadata]);
+  // Remove the old saveTranscript function since transcription API now handles this
 
   const formatFileSize = (bytes: number) => {
     const sizes = ["Bytes", "KB", "MB", "GB"];
@@ -368,15 +376,43 @@ Thank you all for your hard work on this project. The results speak for themselv
         </div>
       </div>
 
-      {/* Progress/Completion Banner */}
+      {/* Progress/Completion/Error Banner */}
       <div className="flex-shrink-0 px-6 pt-4">
-        {isTranscribing ? (
+        {transcriptionError ? (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div className="text-red-500 text-xl">❌</div>
+                <div>
+                  <span className="text-red-800 font-medium block">
+                    Transcription failed
+                  </span>
+                  <span className="text-red-600 text-sm">
+                    {transcriptionError}
+                  </span>
+                </div>
+              </div>
+              <Button
+                onClick={async () => {
+                  const token = await getCurrentUserToken();
+                  if (token && audioMetadata) {
+                    await startTranscription(audioMetadata, token);
+                  }
+                }}
+                size="sm"
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Retry
+              </Button>
+            </div>
+          </div>
+        ) : isTranscribing ? (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center space-x-2">
                 <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
                 <span className="text-blue-800 font-medium">
-                  Transcription in progress
+                  Transcribing audio with OpenAI...
                 </span>
               </div>
               <span className="text-blue-600 font-semibold">
@@ -389,22 +425,35 @@ Thank you all for your hard work on this project. The results speak for themselv
                 style={{ width: `${transcriptionProgress}%` }}
               />
             </div>
+            <div className="mt-2 text-xs text-blue-600">
+              {transcriptionProgress < 30
+                ? "Processing audio file..."
+                : transcriptionProgress < 60
+                ? "Running speech-to-text analysis..."
+                : "Finalizing transcription..."}
+            </div>
           </div>
         ) : (
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <CheckCircle className="h-5 w-5 text-green-600" />
-                <span className="text-green-800 font-medium">
-                  Transcription completed successfully!
-                </span>
-              </div>
-              {isSavingTranscript && (
-                <div className="flex items-center space-x-2 text-green-600">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span className="text-sm">Saving transcript...</span>
+                <div>
+                  <span className="text-green-800 font-medium block">
+                    Transcription completed successfully!
+                  </span>
+                  {transcriptionData && (
+                    <span className="text-green-600 text-sm">
+                      {transcriptionData.word_count} words •
+                      {transcriptionData.model_used} •
+                      {transcriptionData.processing_time_ms &&
+                        ` ${(
+                          transcriptionData.processing_time_ms / 1000
+                        ).toFixed(1)}s`}
+                    </span>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
           </div>
         )}
