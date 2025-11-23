@@ -36,12 +36,6 @@ const navigation = [
     description: "Manage your audio files",
   },
   {
-    name: "Content Generator",
-    href: "/flow/generate",
-    icon: Zap,
-    description: "AI-powered content creation",
-  },
-  {
     name: "Profile",
     href: "/profile",
     icon: User,
