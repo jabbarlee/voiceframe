@@ -47,6 +47,12 @@ const navigation = [
     icon: Settings,
     description: "App preferences",
   },
+  {
+    name: "Pricing & Plans",
+    href: "/pricing",
+    icon: Zap,
+    description: "App preferences",
+  },
 ];
 
 export function Sidebar() {

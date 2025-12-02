@@ -129,39 +129,6 @@ export default function FlowUploadPage() {
     return null;
   };
 
-  const estimateFileDuration = (file: File): number => {
-    const megabytes = file.size / (1024 * 1024);
-    // More accurate estimation based on file type
-    let estimatedBitrate = 128; // Default for MP3
-
-    switch (file.type.toLowerCase()) {
-      case "audio/wav":
-        estimatedBitrate = 1411; // Uncompressed WAV
-        break;
-      case "audio/m4a":
-      case "audio/aac":
-        estimatedBitrate = 128; // AAC compression
-        break;
-      case "audio/ogg":
-        estimatedBitrate = 112; // OGG Vorbis
-        break;
-      case "audio/webm":
-        estimatedBitrate = 128; // WebM audio
-        break;
-      case "audio/mpeg":
-      case "audio/mp3":
-      default:
-        estimatedBitrate = 128; // MP3
-        break;
-    }
-
-    const fileSizeBits = file.size * 8;
-    const bitratePerSecond = estimatedBitrate * 1000;
-    const durationMinutes = fileSizeBits / bitratePerSecond / 60;
-
-    return Math.ceil(durationMinutes * 1.1); // 10% buffer
-  };
-
   const handleFileSelect = (file: File) => {
     const validationError = validateFile(file);
     if (validationError) {
@@ -194,13 +161,6 @@ export default function FlowUploadPage() {
       // Create form data - only include the file, token goes in header
       const formData = new FormData();
       formData.append("audio", selectedFile);
-
-      console.log("📤 Sending upload request to /api/audio/upload");
-      console.log("File details:", {
-        name: selectedFile.name,
-        type: selectedFile.type,
-        size: selectedFile.size,
-      });
 
       // Upload with progress tracking using XMLHttpRequest
       const xhr = new XMLHttpRequest();
