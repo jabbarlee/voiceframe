@@ -17,16 +17,97 @@ import {
   BookOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getCurrentUserToken } from "@/lib/auth";
 
+interface AudioFile {
+  id: string;
+  original_filename: string;
+  file_size_bytes: number;
+  mime_type: string;
+  status: "uploaded" | "processing" | "completed" | "failed";
+  created_at: string;
+  updated_at: string;
+}
+
+interface DashboardStats {
+  totalFiles: number;
+  completedFiles: number;
+  processingFiles: number;
+  contentGenerated: number;
+}
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const { setTitle } = usePageTitle();
   const router = useRouter();
+  
+  const [stats, setStats] = useState<DashboardStats>({
+    totalFiles: 0,
+    completedFiles: 0,
+    processingFiles: 0,
+    contentGenerated: 0,
+  });
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     setTitle("Dashboard");
   }, [setTitle]);
+
+  // Fetch dashboard stats from database
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (!user) return;
+
+      try {
+        setIsLoading(true);
+        const idToken = await getCurrentUserToken();
+
+        if (!idToken) {
+          console.error("No auth token available");
+          setIsLoading(false);
+          return;
+        }
+
+        const response = await fetch("/api/audio", {
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch audio files");
+        }
+
+        const result = await response.json();
+        if (!result.success) {
+          throw new Error(result.error || "Failed to load audio files");
+        }
+
+        const audioFiles: AudioFile[] = result.data || [];
+        
+        // Calculate stats from audio files
+        const totalFiles = audioFiles.length;
+        const completedFiles = audioFiles.filter(f => f.status === "completed").length;
+        const processingFiles = audioFiles.filter(f => f.status === "processing").length;
+        // Content is generated when status is 'completed'
+        const contentGenerated = completedFiles;
+
+        setStats({
+          totalFiles,
+          completedFiles,
+          processingFiles,
+          contentGenerated,
+        });
+      } catch (err) {
+        console.error("Failed to fetch dashboard stats:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, [user]);
 
   return (
     <div className="h-screen flex flex-col bg-gray-50">
@@ -57,7 +138,13 @@ export default function DashboardPage() {
                 <div className="text-sm font-medium text-slate-600">
                   Total Files
                 </div>
-                <div className="text-2xl font-bold text-slate-900">0</div>
+                <div className="text-2xl font-bold text-slate-900">
+                  {isLoading ? (
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  ) : (
+                    stats.totalFiles
+                  )}
+                </div>
                 <div className="text-xs text-slate-500 mt-1">All uploads</div>
               </div>
               <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center">
@@ -72,7 +159,13 @@ export default function DashboardPage() {
                 <div className="text-sm font-medium text-blue-600">
                   Completed
                 </div>
-                <div className="text-2xl font-bold text-blue-900">0</div>
+                <div className="text-2xl font-bold text-blue-900">
+                  {isLoading ? (
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  ) : (
+                    stats.completedFiles
+                  )}
+                </div>
                 <div className="text-xs text-blue-500 mt-1">Ready to view</div>
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -87,7 +180,13 @@ export default function DashboardPage() {
                 <div className="text-sm font-medium text-orange-600">
                   Processing
                 </div>
-                <div className="text-2xl font-bold text-orange-900">0</div>
+                <div className="text-2xl font-bold text-orange-900">
+                  {isLoading ? (
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  ) : (
+                    stats.processingFiles
+                  )}
+                </div>
                 <div className="text-xs text-orange-500 mt-1">In progress</div>
               </div>
               <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
@@ -102,7 +201,13 @@ export default function DashboardPage() {
                 <div className="text-sm font-medium text-emerald-600">
                   Content Generated
                 </div>
-                <div className="text-2xl font-bold text-emerald-900">0</div>
+                <div className="text-2xl font-bold text-emerald-900">
+                  {isLoading ? (
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  ) : (
+                    stats.contentGenerated
+                  )}
+                </div>
                 <div className="text-xs text-emerald-500 mt-1">
                   Learning materials
                 </div>

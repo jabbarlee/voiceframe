@@ -7,6 +7,14 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+// Plan limits configuration
+const PLAN_LIMITS = {
+  free: { minutes: 30, storage: 1 },
+  starter: { minutes: 120, storage: 5 },
+  pro: { minutes: 600, storage: 25 },
+  enterprise: { minutes: 3000, storage: 100 },
+};
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -21,14 +29,14 @@ export async function GET(
       );
     }
 
-    const userId = await params.id;
+    const userId = (await params).id;
 
     // Fetch user data
     const { data: userData, error: userError } = await supabase
       .from("users")
       .select("*")
       .eq("uid", userId)
-      .maybeSingle(); // Use maybeSingle() to handle potential duplicates or missing records
+      .maybeSingle();
 
     if (userError) {
       console.error("❌ Error fetching user:", userError);
@@ -45,6 +53,46 @@ export async function GET(
       );
     }
 
+    // Fetch user_usage data from the database
+    let { data: usageData, error: usageError } = await supabase
+      .from("user_usage")
+      .select("*")
+      .eq("uid", userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (usageError) {
+      console.error("❌ Error fetching user usage:", usageError);
+    }
+
+    // If no usage record exists, create one with default values
+    if (!usageData) {
+      const defaultUsage = {
+        uid: userId,
+        plan: "free",
+        allowed_minutes: 30,
+        used_minutes: 0,
+        cycle_start: new Date(
+          new Date().getFullYear(),
+          new Date().getMonth(),
+          1
+        ).toISOString(),
+      };
+
+      const { data: newUsage, error: insertError } = await supabase
+        .from("user_usage")
+        .insert(defaultUsage)
+        .select("*")
+        .single();
+
+      if (insertError) {
+        console.error("❌ Error creating default usage record:", insertError);
+      } else {
+        usageData = newUsage;
+      }
+    }
+
     // Fetch audio files with related data
     const { data: audioFiles, error: audioError } = await supabase
       .from("audio_files")
@@ -53,6 +101,7 @@ export async function GET(
         id,
         original_filename,
         file_size_bytes,
+        mime_type,
         status,
         created_at,
         transcripts (
@@ -76,53 +125,28 @@ export async function GET(
 
     const files = audioFiles || [];
 
-    // Calculate current month usage
-    const currentMonth = new Date();
-    currentMonth.setDate(1);
-    currentMonth.setHours(0, 0, 0, 0);
-
-    const thisMonthFiles = files.filter((file) => {
-      const createdAt = new Date(file.created_at);
-      return createdAt >= currentMonth;
-    });
-
-    // Calculate transcription usage (count of transcripts this month)
-    const transcriptionUsed = thisMonthFiles.reduce((total, file) => {
-      return total + (file.transcripts?.length || 0);
-    }, 0);
-
     // Calculate storage usage (in GB)
     const totalStorageBytes = files.reduce((total, file) => {
       return total + (file.file_size_bytes || 0);
     }, 0);
-    const storageUsed = totalStorageBytes / (1024 * 1024 * 1024); // Convert to GB
+    const storageUsedGB = totalStorageBytes / (1024 * 1024 * 1024);
 
-    // Get subscription info (you might want to add this to your schema)
-    // For now, using default values - in production you'd have a subscriptions table
-    const subscriptionPlan = "Premium"; // Would come from subscriptions table
-    const subscriptionLimits = {
-      Free: { transcription: 60, storage: 1 },
-      Premium: { transcription: 600, storage: 10 },
-      Pro: { transcription: 1800, storage: 50 },
-    };
+    // Get plan from user_usage table
+    const plan = usageData?.plan || "free";
+    const planKey = plan.toLowerCase() as keyof typeof PLAN_LIMITS;
+    const limits = PLAN_LIMITS[planKey] || PLAN_LIMITS.free;
 
-    const limits =
-      subscriptionLimits[subscriptionPlan as keyof typeof subscriptionLimits] ||
-      subscriptionLimits.Free;
+    // Get used minutes from user_usage table
+    const usedMinutes = usageData?.used_minutes || 0;
+    const allowedMinutes = usageData?.allowed_minutes || limits.minutes;
 
     // Calculate statistics from real data
     const totalTranscriptions = files.reduce((total, file) => {
       return total + (file.transcripts?.length || 0);
     }, 0);
 
-    const totalWordsProcessed = files.reduce((total, file) => {
-      return (
-        total +
-        (file.transcripts?.reduce((wordTotal, transcript) => {
-          return wordTotal + (transcript.word_count || 0);
-        }, 0) || 0)
-      );
-    }, 0);
+    // Estimate total minutes processed from file sizes
+    const totalMinutesProcessed = usedMinutes;
 
     const averageFileSize =
       files.length > 0 ? totalStorageBytes / files.length : 0;
@@ -137,29 +161,42 @@ export async function GET(
           ).toISOString()
         : userData.created_at;
 
+    // Calculate cycle renewal date (next month from cycle_start)
+    const cycleStart = usageData?.cycle_start
+      ? new Date(usageData.cycle_start)
+      : new Date();
+    const renewsOn = new Date(cycleStart);
+    renewsOn.setMonth(renewsOn.getMonth() + 1);
+
+    // Format plan name for display
+    const formatPlanName = (planName: string) => {
+      return planName.charAt(0).toUpperCase() + planName.slice(1);
+    };
+
     const profile = {
       id: userId,
       name: userData.full_name || "",
       email: userData.email || "",
+      avatarUrl: userData.avatar_url || null,
       createdAt: userData.created_at,
       subscription: {
-        plan: subscriptionPlan,
+        plan: formatPlanName(plan),
         status: "Active",
-        renewsOn: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        stripeCustomerId: "cus_example123", // Would come from subscriptions table
+        renewsOn: renewsOn.toISOString(),
+        cycleStart: cycleStart.toISOString(),
       },
       usage: {
         transcription: {
-          used: transcriptionUsed,
-          limit: limits.transcription,
+          used: usedMinutes,
+          limit: allowedMinutes,
         },
         storage: {
-          used: Math.round(storageUsed * 10) / 10, // Round to 1 decimal
+          used: Math.round(storageUsedGB * 100) / 100, // Round to 2 decimals
           limit: limits.storage,
         },
         audioFiles: files.length,
       },
-      apiKey: "vf_live_sk_******************1234", // Would be stored in users table
+      apiKey: "", // Placeholder - API keys feature is coming soon
       preferences: {
         notifications: {
           productUpdates: true,
@@ -173,7 +210,7 @@ export async function GET(
       },
       stats: {
         totalTranscriptions,
-        totalWordsProcessed,
+        totalMinutesProcessed,
         averageFileSize: Math.round(averageFileSize),
         lastActivity,
       },

@@ -2,7 +2,7 @@
 
 import { usePageTitle } from "@/components/layout/PageTitleProvider";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -22,7 +22,6 @@ import {
   Upload,
   Plus,
   Music,
-  MoreVertical,
   SortAsc,
   SortDesc,
   Calendar,
@@ -34,6 +33,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getCurrentUserToken } from "@/lib/auth";
+import { DeleteConfirmationModal } from "@/components/ui/DeleteConfirmationModal";
+import { FileActionsDropdown } from "@/components/ui/FileActionsDropdown";
 
 interface AudioFile {
   id: string;
@@ -73,6 +74,10 @@ export default function LibraryPage() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"date" | "name" | "size">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+
+  // Delete modal state
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [fileToDelete, setFileToDelete] = useState<AudioFile | null>(null);
 
   useEffect(() => {
     setTitle("Audio Library");
@@ -228,19 +233,74 @@ export default function LibraryPage() {
     }
   };
 
-  const handleFileAction = async (action: string, fileId: string) => {
-    switch (action) {
-      case "view":
-        router.push(`/library/${fileId}`);
-        break;
-      case "delete":
-        // Implement delete functionality
-        console.log("Delete file:", fileId);
-        break;
-      default:
-        break;
+  // Handle view action
+  const handleView = useCallback(
+    (fileId: string) => {
+      router.push(`/library/${fileId}`);
+    },
+    [router]
+  );
+
+  // Handle delete action - opens confirmation modal
+  const handleDeleteClick = useCallback((file: AudioFile) => {
+    setFileToDelete(file);
+    setDeleteModalOpen(true);
+  }, []);
+
+  // Handle delete confirmation
+  const handleDeleteConfirm = useCallback(async () => {
+    if (!fileToDelete) return;
+
+    const idToken = await getCurrentUserToken();
+    if (!idToken) {
+      throw new Error("Authentication required. Please sign in again.");
     }
-  };
+
+    let response: Response;
+    try {
+      response = await fetch(`/api/audio/${fileToDelete.id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${idToken}`,
+          "Content-Type": "application/json",
+        },
+      });
+    } catch (fetchError) {
+      // Handle network errors (no response received)
+      console.error("Network error during delete:", fetchError);
+      throw new Error(
+        "Network error. Please check your internet connection and try again."
+      );
+    }
+
+    let result;
+    try {
+      result = await response.json();
+    } catch {
+      // If we can't parse the response, provide a generic error
+      throw new Error("Failed to process server response. Please try again.");
+    }
+
+    if (!response.ok || !result.success) {
+      // Use the error message from the server if available
+      throw new Error(result.error || "Failed to delete audio file");
+    }
+
+    // Remove the deleted file from the local state
+    setAudioFiles((prevFiles) =>
+      prevFiles.filter((file) => file.id !== fileToDelete.id)
+    );
+
+    // Close modal and reset state
+    setDeleteModalOpen(false);
+    setFileToDelete(null);
+  }, [fileToDelete]);
+
+  // Handle modal close
+  const handleDeleteModalClose = useCallback(() => {
+    setDeleteModalOpen(false);
+    setFileToDelete(null);
+  }, []);
 
   if (isLoading) {
     return (
@@ -505,21 +565,15 @@ export default function LibraryPage() {
                               <div className="p-2 bg-slate-100 rounded-lg">
                                 <FileAudio className="h-6 w-6 text-slate-600" />
                               </div>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={() =>
-                                  handleFileAction("delete", file.id)
-                                }
-                              >
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
+                              <FileActionsDropdown
+                                onView={() => handleView(file.id)}
+                                onDelete={() => handleDeleteClick(file)}
+                              />
                             </div>
 
                             <h3
                               className="font-semibold text-gray-900 mb-2 truncate cursor-pointer hover:text-blue-600 transition-colors group-hover:text-blue-600"
-                              onClick={() => handleFileAction("view", file.id)}
+                              onClick={() => handleView(file.id)}
                               title={file.original_filename}
                             >
                               {file.original_filename.replace(/\.[^/.]+$/, "")}
@@ -572,7 +626,7 @@ export default function LibraryPage() {
                           {/* Card Footer - Always at bottom */}
                           <div className="p-4 pt-0 mt-auto">
                             <Button
-                              onClick={() => handleFileAction("view", file.id)}
+                              onClick={() => handleView(file.id)}
                               className="w-full bg-emerald-600 hover:bg-emerald-700"
                               size="sm"
                             >
@@ -586,7 +640,6 @@ export default function LibraryPage() {
                     ) : (
                       // List View
                       <>
-                        {" "}
                         <div className="flex items-center space-x-4 flex-1">
                           <div className="p-2 bg-blue-100 rounded-lg">
                             <FileAudio className="h-5 w-5 text-blue-600" />
@@ -595,7 +648,7 @@ export default function LibraryPage() {
                           <div className="flex-1 min-w-0">
                             <h3
                               className="font-medium text-gray-900 truncate cursor-pointer hover:text-blue-600 transition-colors"
-                              onClick={() => handleFileAction("view", file.id)}
+                              onClick={() => handleView(file.id)}
                             >
                               {file.original_filename.replace(/\.[^/.]+$/, "")}
                             </h3>
@@ -620,22 +673,17 @@ export default function LibraryPage() {
                             )}
 
                             <Button
-                              onClick={() => handleFileAction("view", file.id)}
+                              onClick={() => handleView(file.id)}
                               size="sm"
                               className="bg-emerald-600 hover:bg-emerald-700"
                             >
                               View
                             </Button>
 
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() =>
-                                handleFileAction("delete", file.id)
-                              }
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
+                            <FileActionsDropdown
+                              onView={() => handleView(file.id)}
+                              onDelete={() => handleDeleteClick(file)}
+                            />
                           </div>
                         </div>
                       </>
@@ -741,6 +789,17 @@ export default function LibraryPage() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={deleteModalOpen}
+        onClose={handleDeleteModalClose}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Audio File"
+        description="This action cannot be undone. This will permanently delete the audio file and all associated data including transcripts and generated learning content."
+        itemName={fileToDelete?.original_filename}
+        itemType="audio file"
+      />
     </div>
   );
 }

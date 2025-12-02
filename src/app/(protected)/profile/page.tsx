@@ -31,26 +31,27 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getCurrentUserToken } from "@/lib/auth";
 
-// Types based on your database schema
+// Types based on database schema (users, user_usage, audio_files tables)
 interface UserProfileData {
   id: string;
   name: string;
   email: string;
+  avatarUrl?: string | null;
   createdAt: string;
   subscription: {
     plan: string;
     status: string;
     renewsOn: string;
-    stripeCustomerId?: string;
+    cycleStart?: string;
   };
   usage: {
     transcription: {
-      used: number;
-      limit: number;
+      used: number; // minutes used
+      limit: number; // minutes allowed
     };
     storage: {
-      used: number;
-      limit: number;
+      used: number; // GB used
+      limit: number; // GB allowed
     };
     audioFiles: number;
   };
@@ -74,20 +75,22 @@ interface UserProfileData {
   };
 }
 
-// Default data structure
+// Default data structure matching the user_usage table defaults
 const defaultProfile: UserProfileData = {
   id: "",
   name: "",
   email: "",
+  avatarUrl: null,
   createdAt: new Date().toISOString(),
   subscription: {
     plan: "Free",
     status: "Active",
     renewsOn: new Date().toISOString(),
+    cycleStart: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString(),
   },
   usage: {
-    transcription: { used: 0, limit: 60 },
-    storage: { used: 0, limit: 1 },
+    transcription: { used: 0, limit: 30 }, // Free plan default: 30 minutes
+    storage: { used: 0, limit: 1 }, // Free plan default: 1 GB
     audioFiles: 0,
   },
   apiKey: "",
