@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { MoreVertical, Eye, Trash2, Download, ExternalLink } from "lucide-react";
+import { MoreVertical, Eye, Trash2, Download, ExternalLink, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface FileAction {
@@ -16,6 +16,7 @@ interface FileAction {
 interface FileActionsDropdownProps {
   onView: () => void;
   onDelete: () => void;
+  onRename?: () => void;
   onDownload?: () => void;
   disabled?: boolean;
   className?: string;
@@ -24,6 +25,7 @@ interface FileActionsDropdownProps {
 export function FileActionsDropdown({
   onView,
   onDelete,
+  onRename,
   onDownload,
   disabled = false,
   className = "",
@@ -81,6 +83,19 @@ export function FileActionsDropdown({
         setIsOpen(false);
       },
     },
+    ...(onRename
+      ? [
+          {
+            id: "rename",
+            label: "Rename",
+            icon: <Pencil className="h-4 w-4" />,
+            onClick: () => {
+              onRename();
+              setIsOpen(false);
+            },
+          },
+        ]
+      : []),
     ...(onDownload
       ? [
           {

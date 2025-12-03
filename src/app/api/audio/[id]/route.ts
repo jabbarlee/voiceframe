@@ -314,6 +314,94 @@ export async function GET(
 }
 
 /**
+ * PATCH /api/audio/[id]
+ * Updates an audio file's metadata (e.g., rename)
+ */
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id: audioId } = await params;
+
+    // Verify authentication
+    const authResult = await verifyAuthToken(request);
+    if ("error" in authResult) {
+      return NextResponse.json(
+        { success: false, error: authResult.error },
+        { status: authResult.status }
+      );
+    }
+
+    const { uid } = authResult.decodedToken;
+
+    // Parse request body
+    const body = await request.json();
+    const { original_filename } = body;
+
+    if (!original_filename || typeof original_filename !== "string") {
+      return NextResponse.json(
+        { success: false, error: "Invalid filename provided" },
+        { status: 400 }
+      );
+    }
+
+    // Validate filename (basic sanitization)
+    const sanitizedFilename = original_filename.trim();
+    if (sanitizedFilename.length === 0 || sanitizedFilename.length > 255) {
+      return NextResponse.json(
+        { success: false, error: "Filename must be between 1 and 255 characters" },
+        { status: 400 }
+      );
+    }
+
+    // Verify the audio file exists and belongs to the user
+    const fileResult = await getAudioFileByIdAndUser(audioId, uid);
+    if ("error" in fileResult) {
+      return NextResponse.json(
+        { success: false, error: fileResult.error },
+        { status: fileResult.status }
+      );
+    }
+
+    // Update the filename in the database
+    const { data: updatedFile, error } = await withRetry(
+      () =>
+        supabaseAdmin
+          .from("audio_files")
+          .update({ original_filename: sanitizedFilename, updated_at: new Date().toISOString() })
+          .eq("id", audioId)
+          .eq("uid", uid)
+          .select()
+          .single(),
+      "Update audio file"
+    );
+
+    if (error) {
+      console.error("❌ Database update error:", error);
+      return NextResponse.json(
+        { success: false, error: "Failed to update audio file" },
+        { status: 500 }
+      );
+    }
+
+    console.log(`✅ Audio file renamed: ${audioId} -> ${sanitizedFilename}`);
+
+    return NextResponse.json({
+      success: true,
+      message: "Audio file renamed successfully",
+      data: updatedFile,
+    });
+  } catch (error) {
+    console.error("❌ Audio PATCH API error:", error);
+    return NextResponse.json(
+      { success: false, error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+/**
  * DELETE /api/audio/[id]
  * Deletes an audio file and all associated data
  *

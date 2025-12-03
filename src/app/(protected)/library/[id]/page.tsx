@@ -34,6 +34,9 @@ import {
   ZoomOut,
   Maximize2,
   FileText,
+  Pencil,
+  X,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PDFDownloadButton } from "@/components/ui/PDFDownloadButton";
@@ -116,6 +119,63 @@ export default function ContentGenerationPage() {
   const [contentData, setContentData] = useState<ContentData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Rename state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedTitle, setEditedTitle] = useState("");
+  const [isRenaming, setIsRenaming] = useState(false);
+
+  // Handle rename
+  const handleRename = async () => {
+    if (!editedTitle.trim() || !contentData) return;
+    
+    try {
+      setIsRenaming(true);
+      const idToken = await getCurrentUserToken();
+      
+      const response = await fetch(`/api/audio/${audioId}`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${idToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ original_filename: editedTitle.trim() }),
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Failed to rename");
+      }
+
+      // Update local state with new title
+      setContentData({
+        ...contentData,
+        audioTitle: editedTitle.trim(),
+      });
+      setTitle(editedTitle.trim());
+      setIsEditing(false);
+    } catch (err) {
+      console.error("Rename error:", err);
+      alert(err instanceof Error ? err.message : "Failed to rename audio file");
+    } finally {
+      setIsRenaming(false);
+    }
+  };
+
+  // Start editing
+  const startEditing = () => {
+    if (contentData) {
+      setEditedTitle(contentData.audioTitle);
+      setIsEditing(true);
+    }
+  };
+
+  // Cancel editing
+  const cancelEditing = () => {
+    setIsEditing(false);
+    setEditedTitle("");
+  };
 
   // Fetch content data from API
   useEffect(() => {
@@ -238,22 +298,72 @@ export default function ContentGenerationPage() {
         <div className="w-80 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col">
           {/* Audio Info Header - Smaller height */}
           <div className="px-6 py-3 border-b border-gray-200 flex-shrink-0">
-            {" "}
             <div className="flex items-center space-x-3 h-16">
               <div className="p-2 bg-emerald-100 rounded-lg">
                 <FileAudio className="h-6 w-6 text-emerald-600" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3
-                  className="font-semibold text-gray-900 truncate"
-                  title={data.audioTitle}
-                >
-                  {data.audioTitle}
-                </h3>
-                <div className="flex items-center space-x-2 text-sm text-gray-500">
-                  <Clock className="h-4 w-4 flex-shrink-0" />
-                  <span>{data.duration}</span>
-                </div>
+                {isEditing ? (
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      value={editedTitle}
+                      onChange={(e) => setEditedTitle(e.target.value)}
+                      className="w-full px-2 py-1 text-sm font-semibold border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      placeholder="Enter new name"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleRename();
+                        if (e.key === "Escape") cancelEditing();
+                      }}
+                      disabled={isRenaming}
+                    />
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={handleRename}
+                        disabled={isRenaming || !editedTitle.trim()}
+                        className="flex items-center space-x-1 px-2 py-1 text-xs font-medium text-white bg-emerald-600 rounded hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isRenaming ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <CheckCircle className="h-3 w-3" />
+                        )}
+                        <span>Save</span>
+                      </button>
+                      <button
+                        onClick={cancelEditing}
+                        disabled={isRenaming}
+                        className="flex items-center space-x-1 px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded hover:bg-gray-200 disabled:opacity-50"
+                      >
+                        <X className="h-3 w-3" />
+                        <span>Cancel</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="group flex items-center">
+                    <h3
+                      className="font-semibold text-gray-900 truncate flex-1"
+                      title={data.audioTitle}
+                    >
+                      {data.audioTitle}
+                    </h3>
+                    <button
+                      onClick={startEditing}
+                      className="ml-2 p-1 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded opacity-0 group-hover:opacity-100 transition-all"
+                      title="Rename audio file"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
+                {!isEditing && (
+                  <div className="flex items-center space-x-2 text-sm text-gray-500">
+                    <Clock className="h-4 w-4 flex-shrink-0" />
+                    <span>{data.duration}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

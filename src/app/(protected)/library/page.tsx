@@ -29,6 +29,8 @@ import {
   TrendingUp,
   BarChart3,
   Zap,
+  X,
+  Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -78,6 +80,12 @@ export default function LibraryPage() {
   // Delete modal state
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<AudioFile | null>(null);
+
+  // Rename modal state
+  const [renameModalOpen, setRenameModalOpen] = useState(false);
+  const [fileToRename, setFileToRename] = useState<AudioFile | null>(null);
+  const [newFilename, setNewFilename] = useState("");
+  const [isRenaming, setIsRenaming] = useState(false);
 
   useEffect(() => {
     setTitle("Audio Library");
@@ -305,6 +313,71 @@ export default function LibraryPage() {
   const handleDeleteModalClose = useCallback(() => {
     setDeleteModalOpen(false);
     setFileToDelete(null);
+  }, []);
+
+  // Handle rename action - opens rename modal
+  const handleRenameClick = useCallback((file: AudioFile) => {
+    setFileToRename(file);
+    setNewFilename(file.original_filename.replace(/\.[^/.]+$/, "")); // Remove extension for editing
+    setRenameModalOpen(true);
+  }, []);
+
+  // Handle rename confirmation
+  const handleRenameConfirm = useCallback(async () => {
+    if (!fileToRename || !newFilename.trim()) return;
+
+    setIsRenaming(true);
+    try {
+      const idToken = await getCurrentUserToken();
+      if (!idToken) {
+        throw new Error("Authentication required. Please sign in again.");
+      }
+
+      // Get original extension
+      const originalExt = fileToRename.original_filename.match(/\.[^/.]+$/)?.[0] || "";
+      const finalFilename = newFilename.trim() + originalExt;
+
+      const response = await fetch(`/api/audio/${fileToRename.id}`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${idToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ original_filename: finalFilename }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Failed to rename audio file");
+      }
+
+      // Update the file in local state
+      setAudioFiles((prevFiles) =>
+        prevFiles.map((file) =>
+          file.id === fileToRename.id
+            ? { ...file, original_filename: finalFilename }
+            : file
+        )
+      );
+
+      // Close modal and reset state
+      setRenameModalOpen(false);
+      setFileToRename(null);
+      setNewFilename("");
+    } catch (err) {
+      console.error("Rename error:", err);
+      alert(err instanceof Error ? err.message : "Failed to rename audio file");
+    } finally {
+      setIsRenaming(false);
+    }
+  }, [fileToRename, newFilename]);
+
+  // Handle rename modal close
+  const handleRenameModalClose = useCallback(() => {
+    setRenameModalOpen(false);
+    setFileToRename(null);
+    setNewFilename("");
   }, []);
 
   if (isLoading) {
@@ -572,6 +645,7 @@ export default function LibraryPage() {
                               </div>
                               <FileActionsDropdown
                                 onView={() => handleView(file.id, file.status)}
+                                onRename={() => handleRenameClick(file)}
                                 onDelete={() => handleDeleteClick(file)}
                               />
                             </div>
@@ -687,6 +761,7 @@ export default function LibraryPage() {
 
                             <FileActionsDropdown
                               onView={() => handleView(file.id, file.status)}
+                              onRename={() => handleRenameClick(file)}
                               onDelete={() => handleDeleteClick(file)}
                             />
                           </div>
@@ -805,6 +880,92 @@ export default function LibraryPage() {
         itemName={fileToDelete?.original_filename}
         itemType="audio file"
       />
+
+      {/* Rename Modal */}
+      {renameModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={handleRenameModalClose}
+          />
+          
+          {/* Modal */}
+          <div className="relative bg-white rounded-xl shadow-xl max-w-md w-full mx-4 overflow-hidden">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-emerald-100 rounded-full">
+                    <Pencil className="h-5 w-5 text-emerald-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Rename Audio File
+                  </h3>
+                </div>
+                <button
+                  onClick={handleRenameModalClose}
+                  className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                  disabled={isRenaming}
+                >
+                  <X className="h-5 w-5 text-gray-500" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    New filename
+                  </label>
+                  <input
+                    type="text"
+                    value={newFilename}
+                    onChange={(e) => setNewFilename(e.target.value)}
+                    placeholder="Enter new filename"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                    disabled={isRenaming}
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && newFilename.trim()) {
+                        handleRenameConfirm();
+                      }
+                      if (e.key === "Escape") {
+                        handleRenameModalClose();
+                      }
+                    }}
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    The file extension will be preserved automatically.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end space-x-3">
+              <button
+                onClick={handleRenameModalClose}
+                disabled={isRenaming}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRenameConfirm}
+                disabled={!newFilename.trim() || isRenaming}
+                className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+              >
+                {isRenaming ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Renaming...</span>
+                  </>
+                ) : (
+                  <span>Rename</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
