@@ -23,10 +23,126 @@ import {
   ArrowLeft,
   CheckCircle,
   Loader2,
+  AlertTriangle,
+  X,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getCurrentUserToken } from "@/lib/auth";
+
+// Delete Account Confirmation Modal
+function DeleteAccountModal({
+  isOpen,
+  onClose,
+  onConfirm,
+  isDeleting,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  isDeleting: boolean;
+}) {
+  const [confirmText, setConfirmText] = useState("");
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      
+      {/* Modal */}
+      <div className="relative bg-white rounded-xl shadow-xl max-w-md w-full mx-4 overflow-hidden">
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-red-100 rounded-full">
+                <AlertTriangle className="h-6 w-6 text-red-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Delete Account
+              </h3>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+              disabled={isDeleting}
+            >
+              <X className="h-5 w-5 text-gray-500" />
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <p className="text-gray-600">
+              This action is <span className="font-semibold text-red-600">permanent and irreversible</span>. 
+              All your data will be deleted, including:
+            </p>
+            
+            <ul className="text-sm text-gray-600 space-y-1 ml-4">
+              <li className="flex items-center space-x-2">
+                <span className="w-1.5 h-1.5 bg-red-400 rounded-full"></span>
+                <span>All uploaded audio files</span>
+              </li>
+              <li className="flex items-center space-x-2">
+                <span className="w-1.5 h-1.5 bg-red-400 rounded-full"></span>
+                <span>All transcriptions and generated content</span>
+              </li>
+              <li className="flex items-center space-x-2">
+                <span className="w-1.5 h-1.5 bg-red-400 rounded-full"></span>
+                <span>Your account settings and preferences</span>
+              </li>
+              <li className="flex items-center space-x-2">
+                <span className="w-1.5 h-1.5 bg-red-400 rounded-full"></span>
+                <span>Usage history and statistics</span>
+              </li>
+            </ul>
+
+            <div className="pt-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Type <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-red-600">DELETE</span> to confirm:
+              </label>
+              <input
+                type="text"
+                value={confirmText}
+                onChange={(e) => setConfirmText(e.target.value)}
+                placeholder="Type DELETE"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none"
+                disabled={isDeleting}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end space-x-3">
+          <button
+            onClick={onClose}
+            disabled={isDeleting}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={confirmText !== "DELETE" || isDeleting}
+            className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+          >
+            {isDeleting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Deleting...</span>
+              </>
+            ) : (
+              <span>Delete My Account</span>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // Types based on database schema (users, user_usage, audio_files tables)
 interface UserProfileData {
@@ -120,6 +236,8 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Set page title
   useEffect(() => {
@@ -161,7 +279,7 @@ export default function SettingsPage() {
     fetchProfile();
   }, [user]);
 
-  // Save profile changes
+  // Save profile changes (name update)
   const saveProfile = async (updates: Partial<UserProfileData>) => {
     if (!user) return;
 
@@ -170,7 +288,7 @@ export default function SettingsPage() {
       setError(null);
       const token = await getCurrentUserToken();
 
-      const response = await fetch("/api/user/profile", {
+      const response = await fetch(`/api/user/${user.uid}`, {
         method: "PATCH",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -180,12 +298,17 @@ export default function SettingsPage() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to save profile");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to save profile");
       }
 
       const data = await response.json();
-      if (data.profile) {
-        setProfileData(data.profile);
+      if (data.success && data.user) {
+        // Update the local state with the new name
+        setProfileData((prev) => ({
+          ...prev,
+          name: data.user.name || prev.name,
+        }));
       }
       setSuccessMessage("Changes saved successfully!");
       setTimeout(() => setSuccessMessage(null), 3000);
@@ -193,6 +316,39 @@ export default function SettingsPage() {
       setError(err instanceof Error ? err.message : "Failed to save profile");
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Delete account
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+
+    try {
+      setIsDeleting(true);
+      setError(null);
+      const token = await getCurrentUserToken();
+
+      const response = await fetch(`/api/user/${user.uid}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to delete account");
+      }
+
+      // Account deleted successfully, redirect to home
+      setShowDeleteModal(false);
+      
+      // Log out and redirect
+      await logout();
+      router.push("/");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete account");
+      setIsDeleting(false);
     }
   };
 
@@ -854,7 +1010,12 @@ export default function SettingsPage() {
                       <p className="text-sm text-gray-600 mb-4">
                         Permanently delete your account and all of your data. This action cannot be undone.
                       </p>
-                      <Button variant="destructive">Delete My Account</Button>
+                      <Button 
+                        variant="destructive"
+                        onClick={() => setShowDeleteModal(true)}
+                      >
+                        Delete My Account
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -891,6 +1052,14 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* Delete Account Modal */}
+      <DeleteAccountModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDeleteAccount}
+        isDeleting={isDeleting}
+      />
     </div>
   );
 }
