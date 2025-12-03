@@ -92,7 +92,7 @@ const plans: PricingPlan[] = [
   {
     id: "pro",
     name: "Pro",
-    price: 20,
+    price: 25,
     minutes: 1500,
     hours: 25,
     recommended: true,

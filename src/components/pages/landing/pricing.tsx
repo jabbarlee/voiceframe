@@ -1,10 +1,26 @@
-import { CheckIcon, Star, Zap, Crown } from "lucide-react";
+import { CheckIcon, Star, Zap, Crown, Sparkles } from "lucide-react";
 import { Button } from "../../ui/button";
 
 const plans = [
   {
+    name: "Free",
+    price: 0,
+    description: "Get started with basic features at no cost.",
+    icon: Sparkles,
+    features: [
+      "30 minutes of transcription/month",
+      "3 AI content generations",
+      "Basic editing tools",
+      "PDF export",
+      "Community support",
+    ],
+    buttonText: "Get Started Free",
+    popular: false,
+    gradient: "from-gray-500 to-slate-500",
+  },
+  {
     name: "Starter",
-    price: 19,
+    price: 10,
     description:
       "Perfect for individuals getting started with content creation.",
     icon: Zap,
@@ -21,11 +37,11 @@ const plans = [
   },
   {
     name: "Pro",
-    price: 49,
+    price: 25,
     description: "For professionals who create content regularly.",
     icon: Star,
     features: [
-      "20 hours of transcription/month",
+      "15,000 minutes of transcription/month",
       "Unlimited AI content generations",
       "Advanced editing tools",
       "Team collaboration",
@@ -35,23 +51,6 @@ const plans = [
     buttonText: "Start Free Trial",
     popular: true,
     gradient: "from-emerald-500 to-teal-500",
-  },
-  {
-    name: "Enterprise",
-    price: "Custom",
-    description: "For organizations with advanced needs.",
-    icon: Crown,
-    features: [
-      "Custom transcription limits",
-      "Unlimited AI content generations",
-      "Advanced security & compliance",
-      "Dedicated account manager",
-      "Custom integrations",
-      "SLA & priority support",
-    ],
-    buttonText: "Contact Sales",
-    popular: false,
-    gradient: "from-purple-500 to-pink-500",
   },
 ];
 
@@ -65,7 +64,7 @@ export function Pricing() {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(16,185,129,0.05),transparent_50%)]"></div>
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(16,185,129,0.05),transparent_50%)]"></div>
 
-      <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div className="w-full px-4 sm:px-6 lg:px-12 relative z-10">
         <div className="w-full max-w-4xl mx-auto text-center mb-20">
           <div className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 mb-6">
             <Star className="mr-2 h-4 w-4" />
@@ -82,11 +81,11 @@ export function Pricing() {
           </p>
         </div>
 
-        <div className="w-full max-w-6xl mx-auto grid grid-cols-1 gap-8 lg:grid-cols-3">
+        <div className="w-full flex flex-wrap justify-center gap-6">
           {plans.map((plan) => (
             <div
               key={plan.name}
-              className={`relative rounded-3xl p-8 transition-all duration-300 ${
+              className={`relative rounded-3xl p-8 transition-all duration-300 w-full sm:w-[400px] flex-shrink-0 ${
                 plan.popular
                   ? "bg-white shadow-2xl border-2 border-emerald-200 scale-105 hover:scale-110"
                   : "bg-white shadow-lg border border-gray-200 hover:shadow-xl hover:scale-105"
@@ -129,7 +128,7 @@ export function Pricing() {
                 </div>
 
                 <Button
-                  className={`w-full mb-8 ${
+                  className={`w-full mb-8 whitespace-nowrap ${
                     plan.popular
                       ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg"
                       : "bg-gray-900 hover:bg-gray-800 text-white"
