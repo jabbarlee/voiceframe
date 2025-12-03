@@ -235,8 +235,13 @@ export default function LibraryPage() {
 
   // Handle view action
   const handleView = useCallback(
-    (fileId: string) => {
-      router.push(`/library/${fileId}`);
+    (fileId: string, status?: string) => {
+      // Redirect to analyze page if file is still processing
+      if (status === "processing") {
+        router.push(`/flow/analyze/${fileId}`);
+      } else {
+        router.push(`/library/${fileId}`);
+      }
     },
     [router]
   );
@@ -566,14 +571,14 @@ export default function LibraryPage() {
                                 <FileAudio className="h-6 w-6 text-slate-600" />
                               </div>
                               <FileActionsDropdown
-                                onView={() => handleView(file.id)}
+                                onView={() => handleView(file.id, file.status)}
                                 onDelete={() => handleDeleteClick(file)}
                               />
                             </div>
 
                             <h3
                               className="font-semibold text-gray-900 mb-2 truncate cursor-pointer hover:text-blue-600 transition-colors group-hover:text-blue-600"
-                              onClick={() => handleView(file.id)}
+                              onClick={() => handleView(file.id, file.status)}
                               title={file.original_filename}
                             >
                               {file.original_filename.replace(/\.[^/.]+$/, "")}
@@ -626,7 +631,7 @@ export default function LibraryPage() {
                           {/* Card Footer - Always at bottom */}
                           <div className="p-4 pt-0 mt-auto">
                             <Button
-                              onClick={() => handleView(file.id)}
+                              onClick={() => handleView(file.id, file.status)}
                               className="w-full bg-emerald-600 hover:bg-emerald-700"
                               size="sm"
                             >
@@ -648,7 +653,7 @@ export default function LibraryPage() {
                           <div className="flex-1 min-w-0">
                             <h3
                               className="font-medium text-gray-900 truncate cursor-pointer hover:text-blue-600 transition-colors"
-                              onClick={() => handleView(file.id)}
+                              onClick={() => handleView(file.id, file.status)}
                             >
                               {file.original_filename.replace(/\.[^/.]+$/, "")}
                             </h3>
@@ -673,7 +678,7 @@ export default function LibraryPage() {
                             )}
 
                             <Button
-                              onClick={() => handleView(file.id)}
+                              onClick={() => handleView(file.id, file.status)}
                               size="sm"
                               className="bg-emerald-600 hover:bg-emerald-700"
                             >
@@ -681,7 +686,7 @@ export default function LibraryPage() {
                             </Button>
 
                             <FileActionsDropdown
-                              onView={() => handleView(file.id)}
+                              onView={() => handleView(file.id, file.status)}
                               onDelete={() => handleDeleteClick(file)}
                             />
                           </div>

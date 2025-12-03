@@ -866,25 +866,6 @@ export default function SettingsPage() {
               {/* Security Section */}
               {activeTab === "security" && (
                 <div className="space-y-6">
-                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-                    <div className="p-6 space-y-6">
-                      <div>
-                        <h4 className="font-medium text-gray-900 mb-2">
-                          Password
-                        </h4>
-                        <p className="text-sm text-gray-600 mb-4">
-                          Keep your account secure with a strong password.
-                        </p>
-                        <Button variant="outline">Change Password</Button>
-                      </div>
-
-                      <div className="border-t border-gray-200 pt-6">
-                        <h4 className="font-medium text-gray-900 mb-4">Data</h4>
-                        <Button variant="outline">Download Account Data</Button>
-                      </div>
-                    </div>
-                  </div>
-
                   {/* Danger Zone */}
                   <div className="bg-white rounded-xl border border-red-200 shadow-sm">
                     <div className="p-6 border-b border-red-200 bg-red-50 rounded-t-xl">
