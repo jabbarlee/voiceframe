@@ -23,6 +23,21 @@ export default function TranscriptionPanel({
   const [transcriptionError, setTranscriptionError] = useState("");
   const [transcriptionData, setTranscriptionData] = useState<any>(null);
 
+  // Download transcript as a text file
+  const handleDownloadTranscript = () => {
+    if (!currentTranscript) return;
+    
+    const blob = new Blob([currentTranscript], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `transcript-${audioId}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   useEffect(() => {
     // Kick off the transcription flow when component mounts
     let mounted = true;
@@ -242,7 +257,15 @@ export default function TranscriptionPanel({
                     )}
                   </div>
                 </div>
-                <div />
+                <Button
+                  onClick={handleDownloadTranscript}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center space-x-2 border-green-300 text-green-700 hover:bg-green-100"
+                >
+                  <Download className="h-4 w-4" />
+                  <span>Download</span>
+                </Button>
               </div>
             </div>
           )}

@@ -5,12 +5,9 @@ import { usePageTitle } from "@/components/layout/PageTitleProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import { Switch } from "@/components/ui/switch";
 import {
   User,
   CreditCard,
-  Key,
-  Bell,
   Shield,
   LogOut,
   BarChart,
@@ -53,7 +50,7 @@ function DeleteAccountModal({
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
       />
-      
+
       {/* Modal */}
       <div className="relative bg-white rounded-xl shadow-xl max-w-md w-full mx-4 overflow-hidden">
         <div className="p-6">
@@ -77,10 +74,13 @@ function DeleteAccountModal({
 
           <div className="space-y-4">
             <p className="text-gray-600">
-              This action is <span className="font-semibold text-red-600">permanent and irreversible</span>. 
-              All your data will be deleted, including:
+              This action is{" "}
+              <span className="font-semibold text-red-600">
+                permanent and irreversible
+              </span>
+              . All your data will be deleted, including:
             </p>
-            
+
             <ul className="text-sm text-gray-600 space-y-1 ml-4">
               <li className="flex items-center space-x-2">
                 <span className="w-1.5 h-1.5 bg-red-400 rounded-full"></span>
@@ -102,7 +102,11 @@ function DeleteAccountModal({
 
             <div className="pt-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Type <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-red-600">DELETE</span> to confirm:
+                Type{" "}
+                <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-red-600">
+                  DELETE
+                </span>{" "}
+                to confirm:
               </label>
               <input
                 type="text"
@@ -199,7 +203,11 @@ const defaultProfile: UserProfileData = {
     plan: "Free",
     status: "Active",
     renewsOn: new Date().toISOString(),
-    cycleStart: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString(),
+    cycleStart: new Date(
+      new Date().getFullYear(),
+      new Date().getMonth(),
+      1
+    ).toISOString(),
   },
   usage: {
     transcription: { used: 0, limit: 30 },
@@ -231,7 +239,8 @@ export default function SettingsPage() {
   const { setTitle } = usePageTitle();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("profile");
-  const [profileData, setProfileData] = useState<UserProfileData>(defaultProfile);
+  const [profileData, setProfileData] =
+    useState<UserProfileData>(defaultProfile);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -342,7 +351,7 @@ export default function SettingsPage() {
 
       // Account deleted successfully, redirect to home
       setShowDeleteModal(false);
-      
+
       // Log out and redirect
       await logout();
       router.push("/");
@@ -429,11 +438,13 @@ export default function SettingsPage() {
                   {profileData.email || user?.email}
                 </p>
                 <div className="flex items-center mt-0.5">
-                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
-                    profileData.subscription.plan === "Free"
-                      ? "bg-gray-100 text-gray-700"
-                      : "bg-emerald-100 text-emerald-700"
-                  }`}>
+                  <span
+                    className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
+                      profileData.subscription.plan === "Free"
+                        ? "bg-gray-100 text-gray-700"
+                        : "bg-emerald-100 text-emerald-700"
+                    }`}
+                  >
                     {profileData.subscription.plan} Plan
                   </span>
                 </div>
@@ -448,9 +459,7 @@ export default function SettingsPage() {
                 { id: "profile", label: "Personal Info", icon: User },
                 { id: "subscription", label: "Subscription", icon: CreditCard },
                 { id: "usage", label: "Usage & Stats", icon: BarChart },
-                { id: "notifications", label: "Notifications", icon: Bell },
                 { id: "security", label: "Security", icon: Shield },
-                { id: "api", label: "API Access", icon: Key },
               ].map((item) => (
                 <button
                   key={item.id}
@@ -620,7 +629,9 @@ export default function SettingsPage() {
                     <div className="p-6">
                       <div className="flex items-center justify-between p-4 bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-xl border border-emerald-200">
                         <div>
-                          <p className="text-sm text-emerald-700 font-medium">Your Plan</p>
+                          <p className="text-sm text-emerald-700 font-medium">
+                            Your Plan
+                          </p>
                           <p className="text-2xl font-bold text-emerald-800 mt-1">
                             {profileData.subscription.plan}
                           </p>
@@ -636,12 +647,13 @@ export default function SettingsPage() {
                             </span>
                             {profileData.subscription.plan !== "Free" && (
                               <span className="text-xs text-gray-600">
-                                Renews {formatDate(profileData.subscription.renewsOn)}
+                                Renews{" "}
+                                {formatDate(profileData.subscription.renewsOn)}
                               </span>
                             )}
                           </div>
                         </div>
-                        <Button 
+                        <Button
                           className="bg-emerald-600 hover:bg-emerald-700"
                           onClick={() => router.push("/pricing")}
                         >
@@ -656,7 +668,9 @@ export default function SettingsPage() {
                         <div className="p-4 bg-gray-50 rounded-lg">
                           <div className="flex items-center space-x-2 mb-1">
                             <Clock className="h-4 w-4 text-gray-500" />
-                            <span className="text-sm font-medium text-gray-700">Monthly Minutes</span>
+                            <span className="text-sm font-medium text-gray-700">
+                              Monthly Minutes
+                            </span>
                           </div>
                           <p className="text-lg font-semibold text-gray-900">
                             {profileData.usage.transcription.limit} mins
@@ -665,7 +679,9 @@ export default function SettingsPage() {
                         <div className="p-4 bg-gray-50 rounded-lg">
                           <div className="flex items-center space-x-2 mb-1">
                             <HardDrive className="h-4 w-4 text-gray-500" />
-                            <span className="text-sm font-medium text-gray-700">Storage</span>
+                            <span className="text-sm font-medium text-gray-700">
+                              Storage
+                            </span>
                           </div>
                           <p className="text-lg font-semibold text-gray-900">
                             {profileData.usage.storage.limit} GB
@@ -687,7 +703,8 @@ export default function SettingsPage() {
                         Current Usage
                       </h3>
                       <p className="text-gray-600 mt-1 text-sm">
-                        Track your consumption of included resources this billing cycle.
+                        Track your consumption of included resources this
+                        billing cycle.
                       </p>
                     </div>
                     <div className="p-6 space-y-6">
@@ -701,8 +718,13 @@ export default function SettingsPage() {
                             </h4>
                           </div>
                           <p className="text-sm font-medium">
-                            <span className="text-emerald-600">{profileData.usage.transcription.used}</span>
-                            <span className="text-gray-400"> / {profileData.usage.transcription.limit} mins</span>
+                            <span className="text-emerald-600">
+                              {profileData.usage.transcription.used}
+                            </span>
+                            <span className="text-gray-400">
+                              {" "}
+                              / {profileData.usage.transcription.limit} mins
+                            </span>
                           </p>
                         </div>
                         <Progress
@@ -714,7 +736,9 @@ export default function SettingsPage() {
                           className="h-2"
                         />
                         <p className="text-xs text-gray-500 mt-1">
-                          {profileData.usage.transcription.limit - profileData.usage.transcription.used} minutes remaining
+                          {profileData.usage.transcription.limit -
+                            profileData.usage.transcription.used}{" "}
+                          minutes remaining
                         </p>
                       </div>
 
@@ -723,11 +747,18 @@ export default function SettingsPage() {
                         <div className="flex justify-between items-center mb-2">
                           <div className="flex items-center space-x-2">
                             <HardDrive className="h-4 w-4 text-blue-600" />
-                            <h4 className="font-medium text-gray-700">Storage</h4>
+                            <h4 className="font-medium text-gray-700">
+                              Storage
+                            </h4>
                           </div>
                           <p className="text-sm font-medium">
-                            <span className="text-blue-600">{profileData.usage.storage.used.toFixed(2)}</span>
-                            <span className="text-gray-400"> / {profileData.usage.storage.limit} GB</span>
+                            <span className="text-blue-600">
+                              {profileData.usage.storage.used.toFixed(2)}
+                            </span>
+                            <span className="text-gray-400">
+                              {" "}
+                              / {profileData.usage.storage.limit} GB
+                            </span>
                           </p>
                         </div>
                         <Progress
@@ -744,7 +775,9 @@ export default function SettingsPage() {
                       <div className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg">
                         <div className="flex items-center space-x-2">
                           <FileAudio className="h-4 w-4 text-purple-600" />
-                          <span className="font-medium text-gray-700">Total Audio Files</span>
+                          <span className="font-medium text-gray-700">
+                            Total Audio Files
+                          </span>
                         </div>
                         <span className="font-semibold text-gray-900">
                           {profileData.usage.audioFiles} files
@@ -752,7 +785,8 @@ export default function SettingsPage() {
                       </div>
 
                       <p className="text-sm text-gray-500">
-                        Usage resets on {formatDate(profileData.subscription.renewsOn)}
+                        Usage resets on{" "}
+                        {formatDate(profileData.subscription.renewsOn)}
                       </p>
                     </div>
                   </div>
@@ -802,7 +836,9 @@ export default function SettingsPage() {
                                 Avg File Size
                               </p>
                               <p className="text-2xl font-bold text-purple-900 mt-1">
-                                {formatFileSize(profileData.stats.averageFileSize)}
+                                {formatFileSize(
+                                  profileData.stats.averageFileSize
+                                )}
                               </p>
                             </div>
                             <Database className="h-8 w-8 text-purple-500" />
@@ -827,166 +863,19 @@ export default function SettingsPage() {
                 </div>
               )}
 
-              {/* Notifications Section */}
-              {activeTab === "notifications" && (
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-                  <div className="p-6 border-b border-gray-200">
-                    <h3 className="text-xl font-semibold text-gray-900">
-                      Notification Preferences
-                    </h3>
-                    <p className="text-gray-600 mt-1 text-sm">
-                      Choose how and when you want to be notified.
-                    </p>
-                  </div>
-                  <div className="p-6 space-y-4">
-                    <div className="flex items-center justify-between py-3">
-                      <div>
-                        <h4 className="font-medium text-gray-900">
-                          Transcription Complete
-                        </h4>
-                        <p className="text-sm text-gray-500">
-                          Get notified when your audio processing is done
-                        </p>
-                      </div>
-                      <Switch
-                        checked={profileData.preferences.notifications.transcriptionComplete}
-                        onCheckedChange={(checked: boolean) => {
-                          const updated = {
-                            ...profileData,
-                            preferences: {
-                              ...profileData.preferences,
-                              notifications: {
-                                ...profileData.preferences.notifications,
-                                transcriptionComplete: checked,
-                              },
-                            },
-                          };
-                          setProfileData(updated);
-                        }}
-                      />
-                    </div>
-                    <div className="border-t border-gray-100"></div>
-                    <div className="flex items-center justify-between py-3">
-                      <div>
-                        <h4 className="font-medium text-gray-900">
-                          Product Updates
-                        </h4>
-                        <p className="text-sm text-gray-500">
-                          Receive updates about new features and improvements
-                        </p>
-                      </div>
-                      <Switch
-                        checked={profileData.preferences.notifications.productUpdates}
-                        onCheckedChange={(checked: boolean) => {
-                          const updated = {
-                            ...profileData,
-                            preferences: {
-                              ...profileData.preferences,
-                              notifications: {
-                                ...profileData.preferences.notifications,
-                                productUpdates: checked,
-                              },
-                            },
-                          };
-                          setProfileData(updated);
-                        }}
-                      />
-                    </div>
-                    <div className="border-t border-gray-100"></div>
-                    <div className="flex items-center justify-between py-3">
-                      <div>
-                        <h4 className="font-medium text-gray-900">
-                          Weekly Summary
-                        </h4>
-                        <p className="text-sm text-gray-500">
-                          Get a weekly summary of your transcription activity
-                        </p>
-                      </div>
-                      <Switch
-                        checked={profileData.preferences.notifications.weeklySummary}
-                        onCheckedChange={(checked: boolean) => {
-                          const updated = {
-                            ...profileData,
-                            preferences: {
-                              ...profileData.preferences,
-                              notifications: {
-                                ...profileData.preferences.notifications,
-                                weeklySummary: checked,
-                              },
-                            },
-                          };
-                          setProfileData(updated);
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <div className="p-6 bg-gray-50 border-t border-gray-200 flex justify-end rounded-b-xl">
-                    <Button
-                      className="bg-emerald-600 hover:bg-emerald-700"
-                      onClick={() => saveProfile({ preferences: profileData.preferences })}
-                      disabled={saving}
-                    >
-                      {saving ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        "Save Preferences"
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              )}
-
               {/* Security Section */}
               {activeTab === "security" && (
                 <div className="space-y-6">
                   <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-                    <div className="p-6 border-b border-gray-200">
-                      <h3 className="text-xl font-semibold text-gray-900">
-                        Security Settings
-                      </h3>
-                      <p className="text-gray-600 mt-1 text-sm">
-                        Manage your password and account security.
-                      </p>
-                    </div>
                     <div className="p-6 space-y-6">
                       <div>
-                        <h4 className="font-medium text-gray-900 mb-2">Password</h4>
+                        <h4 className="font-medium text-gray-900 mb-2">
+                          Password
+                        </h4>
                         <p className="text-sm text-gray-600 mb-4">
                           Keep your account secure with a strong password.
                         </p>
                         <Button variant="outline">Change Password</Button>
-                      </div>
-
-                      <div className="border-t border-gray-200 pt-6">
-                        <h4 className="font-medium text-gray-900 mb-4">Privacy Settings</h4>
-                        <div className="flex items-center justify-between py-3">
-                          <div>
-                            <h5 className="font-medium text-gray-800">Analytics</h5>
-                            <p className="text-sm text-gray-500">
-                              Help us improve by sharing anonymous usage data
-                            </p>
-                          </div>
-                          <Switch
-                            checked={profileData.preferences.privacy.analytics}
-                            onCheckedChange={(checked: boolean) => {
-                              const updated = {
-                                ...profileData,
-                                preferences: {
-                                  ...profileData.preferences,
-                                  privacy: {
-                                    ...profileData.preferences.privacy,
-                                    analytics: checked,
-                                  },
-                                },
-                              };
-                              setProfileData(updated);
-                              saveProfile({ preferences: updated.preferences });
-                            }}
-                          />
-                        </div>
                       </div>
 
                       <div className="border-t border-gray-200 pt-6">
@@ -1008,42 +897,15 @@ export default function SettingsPage() {
                     </div>
                     <div className="p-6">
                       <p className="text-sm text-gray-600 mb-4">
-                        Permanently delete your account and all of your data. This action cannot be undone.
+                        Permanently delete your account and all of your data.
+                        This action cannot be undone.
                       </p>
-                      <Button 
+                      <Button
                         variant="destructive"
                         onClick={() => setShowDeleteModal(true)}
                       >
                         Delete My Account
                       </Button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* API Access Section */}
-              {activeTab === "api" && (
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-                  <div className="p-6 border-b border-gray-200">
-                    <h3 className="text-xl font-semibold text-gray-900">
-                      API Access
-                    </h3>
-                    <p className="text-gray-600 mt-1 text-sm">
-                      Use this key to integrate VoiceFrame with your applications.
-                    </p>
-                  </div>
-                  <div className="p-6">
-                    <div className="flex flex-col items-center justify-center py-12">
-                      <div className="p-4 bg-gray-100 rounded-full mb-4">
-                        <Key className="h-8 w-8 text-gray-400" />
-                      </div>
-                      <h4 className="text-lg font-medium text-gray-900 mb-2">
-                        Coming Soon
-                      </h4>
-                      <p className="text-gray-500 text-center max-w-md text-sm">
-                        API access and developer tools are currently in development. 
-                        Stay tuned for updates!
-                      </p>
                     </div>
                   </div>
                 </div>

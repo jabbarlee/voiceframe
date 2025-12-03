@@ -1184,41 +1184,6 @@ export default function ContentGenerationPage() {
                     </div>
                   </div>
 
-                  {/* Sharing Options */}
-                  <div className="mt-6 bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-                    <h4 className="text-lg font-semibold text-gray-900 mb-4">
-                      Sharing & Export Options
-                    </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <PDFDownloadButton
-                        audioId={audioId}
-                        audioTitle={data.audioTitle}
-                        template={selectedTemplate}
-                        options={{
-                          includeSummary: true,
-                          summaryTone: summaryTone,
-                          includeFlashcards: true,
-                          includeConcepts: true,
-                          includeMetadata: true,
-                        }}
-                        className="h-12 w-full"
-                      />
-                      <Button
-                        variant="outline"
-                        className="flex items-center justify-center space-x-2 h-12"
-                      >
-                        <Copy className="h-5 w-5" />
-                        <span>Copy Link</span>
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="flex items-center justify-center space-x-2 h-12"
-                      >
-                        <Sparkles className="h-5 w-5" />
-                        <span>Share Pack</span>
-                      </Button>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
