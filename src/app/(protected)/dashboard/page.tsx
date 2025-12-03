@@ -271,7 +271,7 @@ export default function DashboardPage() {
               </Button>
 
               <Button
-                onClick={() => router.push("/flow/generate")}
+                onClick={() => router.push("/flow/upload")}
                 className="w-full p-6 bg-purple-50 border-2 border-purple-200 rounded-xl hover:border-purple-300 hover:bg-purple-100 transition-all group text-left h-auto justify-start"
                 variant="ghost"
               >
