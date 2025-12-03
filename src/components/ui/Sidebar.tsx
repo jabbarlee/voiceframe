@@ -36,22 +36,16 @@ const navigation = [
     description: "Manage your audio files",
   },
   {
-    name: "Profile",
-    href: "/profile",
-    icon: User,
-    description: "Account settings",
-  },
-  {
     name: "Settings",
     href: "/settings",
     icon: Settings,
-    description: "App preferences",
+    description: "Account & preferences",
   },
   {
     name: "Pricing & Plans",
     href: "/pricing",
     icon: Zap,
-    description: "App preferences",
+    description: "Upgrade your plan",
   },
 ];
 
